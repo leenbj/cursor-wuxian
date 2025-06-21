@@ -95,10 +95,10 @@
     },
     "settings": {
         "title": "⚙️ Settings",
-        "language": "Language",
+        "language": "🌍 Language",
         "currentLanguage": "Current Language",
         "languageDesc": "Select interface display language",
-        "interface": "Interface Settings",
+        "interface": "🎨 Interface Settings",
         "layoutMode": "Interface Layout Mode",
         "layoutModeDesc": "Select how AI summary and feedback input are displayed",
         "combinedVertical": "Vertical Layout",
@@ -109,7 +109,7 @@
         "autoCloseDesc": "Automatically close page after submitting feedback",
         "theme": "Theme",
         "notifications": "Notifications",
-        "advanced": "Advanced Settings",
+        "advanced": "🔧 Advanced Settings",
         "save": "Save Settings",
         "reset": "Reset Settings",
         "resetDesc": "Clear all saved settings and restore to default state",
@@ -238,7 +238,7 @@
     },
     "sessionHistory": {
         "management": {
-            "title": "Session History Management",
+            "title": "📚 Session History Management",
             "retentionPeriod": "Retention Period",
             "retentionHours": "hours",
             "export": "Export",
@@ -323,7 +323,7 @@
     },
     "prompts": {
         "management": {
-            "title": "Prompt Templates Management",
+            "title": "📝 Prompt Templates Management",
             "description": "Manage your frequently used prompt templates for quick selection during feedback input",
             "addNew": "Add New Prompt",
             "edit": "Edit",
@@ -387,7 +387,7 @@
     },
     "images": {
         "settings": {
-            "title": "Image Settings",
+            "title": "🖼️ Image Settings",
             "sizeLimit": "Image Size Limit",
             "sizeLimitDesc": "Set the maximum file size limit for uploaded images",
             "sizeLimitOptions": {
@@ -406,7 +406,7 @@
         "sizeLimitExceededAdvice": "Consider compressing the image with editing software before uploading, or adjust the image size limit settings."
     },
     "autoSubmit": {
-        "title": "Auto Timed Submit",
+        "title": "⏰ Auto Timed Submit",
         "enable": "Enable Auto Submit",
         "enableDesc": "When enabled, automatically submit selected prompt content after specified time",
         "timeout": "Countdown Time (seconds)",
@@ -423,7 +423,7 @@
     },
     "audio": {
         "notification": {
-            "title": "Audio Notification Settings",
+            "title": "🔊 Audio Notification Settings",
             "description": "Configure audio notifications for session updates",
             "enabled": "Enable Audio Notifications",
             "enabledDesc": "Play audio notifications when there are new session updates",
