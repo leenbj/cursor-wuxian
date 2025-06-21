@@ -37,9 +37,11 @@ from pydantic import Field
 
 # 導入統一的調試功能
 from .debug import server_debug_log as debug_log
+
 # 導入多語系支援
 # 導入錯誤處理框架
 from .utils.error_handler import ErrorHandler, ErrorType
+
 # 導入資源管理器
 from .utils.resource_manager import create_temp_file
 
@@ -113,6 +115,7 @@ REMOTE_ENV_VARS = ["REMOTE_CONTAINERS", "CODESPACES"]
 
 # 初始化 MCP 服務器
 from . import __version__
+
 
 # 確保 log_level 設定為正確的大寫格式
 fastmcp_settings = {}
@@ -431,20 +434,22 @@ async def interactive_feedback(
     ] = "我已完成了您請求的任務。",
     timeout: Annotated[int, Field(description="等待用戶回饋的超時時間（秒）")] = 600,
 ) -> list:
-    """
+    """Interactive feedback collection tool for LLM agents.
+
+    USAGE RULES:
     1. During any process, task, or conversation, whether asking, replying, or completing phased tasks, you must call this tool to ask for feedback.
     2. Unless receiving termination instructions, all steps must repeatedly call this tool.
     3. Whenever user feedback is received, if the feedback content is not empty, you must call this tool again and adjust behavior based on the feedback content.
     4. Only when the user explicitly indicates "end" or "no more interaction needed" can you stop calling this tool, and the process is considered complete.
-    5. You should summary what have done, and provide project directory through args to let user know what you have done to provide feedback for next step.
+    5. You should summarize what have done, and provide project directory through args to let user know what you have done to provide feedback for next step.
 
     Args:
-        project_directory: 專案目錄路徑
-        summary: AI 工作完成的摘要說明
-        timeout: 等待用戶回饋的超時時間（秒），預設為 600 秒（10 分鐘）
+        project_directory: Project directory path for context
+        summary: Summary of AI work completed for user review
+        timeout: Timeout in seconds for waiting user feedback (default: 600 seconds)
 
     Returns:
-        List: 包含 TextContent 和 MCPImage 對象的列表
+        list: List containing TextContent and MCPImage objects representing user feedback
     """
     # 環境偵測
     is_remote = is_remote_environment()
