@@ -19,7 +19,8 @@ try:
     from mcp_feedback_enhanced.debug import server_debug_log as debug_log
     from mcp_feedback_enhanced.web.main import WebUIManager, get_web_ui_manager
 except ImportError as e:
-    print(f"無法導入 MCP Feedback Enhanced 模組: {e}")
+    # 在這裡無法使用 debug_log，因為導入失敗
+    sys.stderr.write(f"無法導入 MCP Feedback Enhanced 模組: {e}\n")
     sys.exit(1)
 
 
@@ -326,7 +327,7 @@ def run_desktop_app():
             loop.close()
 
     except Exception as e:
-        print(f"桌面應用程式運行失敗: {e}")
+        sys.stderr.write(f"桌面應用程式運行失敗: {e}\n")
         sys.exit(1)
 
 
