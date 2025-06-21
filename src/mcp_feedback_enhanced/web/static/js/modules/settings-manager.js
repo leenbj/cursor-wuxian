@@ -30,7 +30,7 @@
             language: 'zh-TW',
             imageSizeLimit: 0,
             enableBase64Detail: false,
-            activeTab: 'combined',
+            // 移除 activeTab - 頁籤切換無需持久化
             sessionPanelCollapsed: false,
             // 自動定時提交設定
             autoSubmitEnabled: false,
@@ -58,12 +58,7 @@
         this.onLanguageChange = options.onLanguageChange || null;
         this.onAutoSubmitStateChange = options.onAutoSubmitStateChange || null;
 
-        // 防抖機制相關
-        this.saveToServerDebounceTimer = null;
-        this.saveToServerDebounceDelay = options.saveDebounceDelay || 500; // 預設 500ms 防抖延遲
-        this.pendingServerSave = false;
-
-        console.log('✅ SettingsManager 建構函數初始化完成，防抖延遲:', this.saveToServerDebounceDelay + 'ms');
+        console.log('✅ SettingsManager 建構函數初始化完成 - 即時保存模式');
     }
 
     /**
@@ -74,28 +69,16 @@
         
         return new Promise(function(resolve, reject) {
             logger.info('開始載入設定...');
-            
-            // 優先從伺服器端載入設定
+
+            // 只從伺服器端載入設定
             self.loadFromServer()
                 .then(function(serverSettings) {
                     if (serverSettings && Object.keys(serverSettings).length > 0) {
                         self.currentSettings = self.mergeSettings(self.defaultSettings, serverSettings);
                         logger.info('從伺服器端載入設定成功:', self.currentSettings);
-                        
-                        // 同步到 localStorage
-                        self.saveToLocalStorage();
-                        resolve(self.currentSettings);
-                    } else {
-                        // 回退到 localStorage
-                        return self.loadFromLocalStorage();
-                    }
-                })
-                .then(function(localSettings) {
-                    if (localSettings) {
-                        self.currentSettings = self.mergeSettings(self.defaultSettings, localSettings);
-                        console.log('從 localStorage 載入設定:', self.currentSettings);
                     } else {
                         console.log('沒有找到設定，使用預設值');
+                        self.currentSettings = Utils.deepClone(self.defaultSettings);
                     }
                     resolve(self.currentSettings);
                 })
@@ -125,27 +108,7 @@
             });
     };
 
-    /**
-     * 從 localStorage 載入設定
-     */
-    SettingsManager.prototype.loadFromLocalStorage = function() {
-        if (!Utils.isLocalStorageSupported()) {
-            return Promise.resolve(null);
-        }
 
-        try {
-            const localSettings = localStorage.getItem('mcp-feedback-settings');
-            if (localSettings) {
-                const parsed = Utils.safeJsonParse(localSettings, null);
-                console.log('從 localStorage 載入設定:', parsed);
-                return Promise.resolve(parsed);
-            }
-        } catch (error) {
-            console.warn('從 localStorage 載入設定失敗:', error);
-        }
-        
-        return Promise.resolve(null);
-    };
 
     /**
      * 保存設定
@@ -157,10 +120,7 @@
 
         logger.debug('保存設定:', this.currentSettings);
 
-        // 保存到 localStorage
-        this.saveToLocalStorage();
-
-        // 同步保存到伺服器端
+        // 只保存到伺服器端
         this.saveToServer();
 
         // 觸發回調
@@ -171,39 +131,13 @@
         return this.currentSettings;
     };
 
-    /**
-     * 保存到 localStorage
-     */
-    SettingsManager.prototype.saveToLocalStorage = function() {
-        if (!Utils.isLocalStorageSupported()) {
-            return;
-        }
 
-        try {
-            localStorage.setItem('mcp-feedback-settings', JSON.stringify(this.currentSettings));
-        } catch (error) {
-            console.error('保存設定到 localStorage 失敗:', error);
-        }
-    };
 
     /**
-     * 保存到伺服器（帶防抖機制）
+     * 保存到伺服器（即時保存）
      */
     SettingsManager.prototype.saveToServer = function() {
-        const self = this;
-
-        // 清除之前的定時器
-        if (self.saveToServerDebounceTimer) {
-            clearTimeout(self.saveToServerDebounceTimer);
-        }
-
-        // 標記有待處理的保存操作
-        self.pendingServerSave = true;
-
-        // 設置新的防抖定時器
-        self.saveToServerDebounceTimer = setTimeout(function() {
-            self._performServerSave();
-        }, self.saveToServerDebounceDelay);
+        this._performServerSave();
     };
 
     /**
@@ -211,12 +145,6 @@
      */
     SettingsManager.prototype._performServerSave = function() {
         const self = this;
-
-        if (!self.pendingServerSave) {
-            return;
-        }
-
-        self.pendingServerSave = false;
 
         fetch('/api/save-settings', {
             method: 'POST',
@@ -227,7 +155,7 @@
         })
         .then(function(response) {
             if (response.ok) {
-                console.log('設定已同步到伺服器端');
+                console.log('設定已即時同步到伺服器端');
             } else {
                 console.warn('同步設定到伺服器端失敗:', response.status);
             }
@@ -237,20 +165,7 @@
         });
     };
 
-    /**
-     * 立即保存到伺服器（跳過防抖機制）
-     * 用於重要操作，如語言變更、重置設定等
-     */
-    SettingsManager.prototype.saveToServerImmediate = function() {
-        // 清除防抖定時器
-        if (this.saveToServerDebounceTimer) {
-            clearTimeout(this.saveToServerDebounceTimer);
-            this.saveToServerDebounceTimer = null;
-        }
 
-        // 立即執行保存
-        this._performServerSave();
-    };
 
     /**
      * 合併設定
@@ -283,22 +198,14 @@
     SettingsManager.prototype.set = function(key, value) {
         const oldValue = this.currentSettings[key];
         this.currentSettings[key] = value;
-        
+
         // 特殊處理語言變更
         if (key === 'language' && oldValue !== value) {
             this.handleLanguageChange(value);
-            // 語言變更是重要操作，立即保存
-            this.saveToLocalStorage();
-            this.saveToServerImmediate();
-
-            // 觸發回調
-            if (this.onSettingsChange) {
-                this.onSettingsChange(this.currentSettings);
-            }
-        } else {
-            // 一般設定變更使用防抖保存
-            this.saveSettings();
         }
+
+        // 所有設定變更都即時保存
+        this.saveSettings();
 
         return this;
     };
@@ -334,14 +241,13 @@
     SettingsManager.prototype.handleLanguageChange = function(newLanguage) {
         console.log('語言設定變更: ' + newLanguage);
 
-        // 同步到 localStorage
-        if (Utils.isLocalStorageSupported()) {
-            localStorage.setItem('language', newLanguage);
-        }
-
-        // 通知國際化系統
+        // 通知國際化系統（統一由 SettingsManager 管理）
         if (window.i18nManager) {
-            window.i18nManager.setLanguage(newLanguage);
+            // 直接設定語言，不觸發 i18nManager 的保存邏輯
+            window.i18nManager.currentLanguage = newLanguage;
+            window.i18nManager.applyTranslations();
+            window.i18nManager.setupLanguageSelectors();
+            document.documentElement.lang = newLanguage;
         }
 
         // 延遲更新動態文字，確保 i18n 已經載入新語言
@@ -361,17 +267,11 @@
     SettingsManager.prototype.resetSettings = function() {
         console.log('重置所有設定');
 
-        // 清除 localStorage
-        if (Utils.isLocalStorageSupported()) {
-            localStorage.removeItem('mcp-feedback-settings');
-        }
-
         // 重置為預設值
         this.currentSettings = Utils.deepClone(this.defaultSettings);
 
-        // 立即保存重置後的設定（重要操作）
-        this.saveToLocalStorage();
-        this.saveToServerImmediate();
+        // 立即保存重置後的設定到伺服器
+        this.saveToServer();
 
         // 觸發回調
         if (this.onSettingsChange) {

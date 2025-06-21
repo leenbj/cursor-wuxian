@@ -311,28 +311,86 @@
         if (urlLogLevel) {
             return urlLogLevel;
         }
-        
-        // 檢查 localStorage
-        const storedLevel = localStorage.getItem('mcp-log-level');
-        if (storedLevel) {
-            return storedLevel;
-        }
-        
+
         // 檢查是否為開發環境
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             return LogLevel.DEBUG;
         }
-        
+
         return LogLevel.INFO;
+    }
+
+    // 從 API 載入日誌等級
+    function loadLogLevelFromAPI() {
+        fetch('/api/log-level')
+            .then(function(response) {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('載入日誌等級失敗: ' + response.status);
+            })
+            .then(function(data) {
+                const apiLogLevel = data.logLevel;
+                if (apiLogLevel && Object.values(LogLevel).includes(apiLogLevel)) {
+                    currentLogLevel = apiLogLevel;
+                    console.log('📋 從 API 載入日誌等級:', apiLogLevel);
+                }
+            })
+            .catch(function(error) {
+                console.warn('⚠️ 載入日誌等級失敗，使用預設值:', error);
+            });
+    }
+
+    // 保存日誌等級到 API
+    function saveLogLevelToAPI(logLevel) {
+        fetch('/api/log-level', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                logLevel: logLevel
+            })
+        })
+        .then(function(response) {
+            if (response.ok) {
+                return response.json();
+            }
+            throw new Error('保存日誌等級失敗: ' + response.status);
+        })
+        .then(function(data) {
+            console.log('📋 日誌等級已保存:', data.logLevel);
+        })
+        .catch(function(error) {
+            console.warn('⚠️ 保存日誌等級失敗:', error);
+        });
     }
 
     // 設置全域日誌等級
     globalLogger.setLevel(detectLogLevel());
 
+    // 頁面載入後從 API 載入日誌等級
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadLogLevelFromAPI);
+    } else {
+        loadLogLevelFromAPI();
+    }
+
     // 匯出到全域命名空間
     window.MCPFeedback.Logger = Logger;
     window.MCPFeedback.LogLevel = LogLevel;
     window.MCPFeedback.logger = globalLogger;
+
+    // 匯出設定方法
+    window.MCPFeedback.setLogLevel = function(logLevel) {
+        if (Object.values(LogLevel).includes(logLevel)) {
+            globalLogger.setLevel(logLevel);
+            saveLogLevelToAPI(logLevel);
+            console.log('📋 日誌等級已更新:', LogLevelNames[logLevel]);
+        } else {
+            console.warn('⚠️ 無效的日誌等級:', logLevel);
+        }
+    };
 
     console.log('✅ Logger 模組載入完成，當前等級:', LogLevelNames[globalLogger.getLevel()]);
 

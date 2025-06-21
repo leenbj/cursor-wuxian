@@ -308,20 +308,7 @@
             return 'WebSocket' in window;
         },
 
-        /**
-         * 檢查 localStorage 是否可用
-         * @returns {boolean} localStorage 是否可用
-         */
-        isLocalStorageSupported: function() {
-            try {
-                const test = '__localStorage_test__';
-                localStorage.setItem(test, test);
-                localStorage.removeItem(test);
-                return true;
-            } catch (e) {
-                return false;
-            }
-        },
+
 
         /**
          * HTML 轉義函數

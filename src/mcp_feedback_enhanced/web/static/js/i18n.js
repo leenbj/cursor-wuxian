@@ -14,14 +14,7 @@ class I18nManager {
     }
 
     async init() {
-        // 從 localStorage 載入語言偏好
-        const savedLanguage = localStorage.getItem('language');
-        if (savedLanguage) {
-            this.currentLanguage = savedLanguage;
-            console.log(`i18nManager 從 localStorage 載入語言: ${savedLanguage}`);
-        } else {
-            console.log(`i18nManager 使用默認語言: ${this.currentLanguage}`);
-        }
+        console.log(`i18nManager 使用預設語言: ${this.currentLanguage}`);
 
         // 載入翻譯數據
         await this.loadTranslations();
@@ -125,7 +118,6 @@ class I18nManager {
         console.log(`🔄 i18nManager.setLanguage() 被調用: ${this.currentLanguage} -> ${language}`);
         if (this.translations[language]) {
             this.currentLanguage = language;
-            localStorage.setItem('language', language);
             this.applyTranslations();
 
             // 更新所有語言選擇器（包括現代化版本）
@@ -302,10 +294,14 @@ class I18nManager {
                 selector.removeEventListener('change', selector._i18nChangeHandler);
             }
 
-            // 添加新的事件監聽器
+            // 添加新的事件監聽器 - 通過 SettingsManager 統一管理
             selector._i18nChangeHandler = (e) => {
                 console.log(`🔄 i18n select change event: ${e.target.value}`);
-                this.setLanguage(e.target.value);
+                if (window.feedbackApp && window.feedbackApp.settingsManager) {
+                    window.feedbackApp.settingsManager.set('language', e.target.value);
+                } else {
+                    this.setLanguage(e.target.value);
+                }
             };
             selector.addEventListener('change', selector._i18nChangeHandler);
         }
@@ -325,9 +321,13 @@ class I18nManager {
                 // 移除舊的事件監聽器（如果存在）
                 option.removeEventListener('click', option._languageClickHandler);
 
-                // 添加新的點擊事件監聽器
+                // 添加新的點擊事件監聽器 - 通過 SettingsManager 統一管理
                 option._languageClickHandler = () => {
-                    this.setLanguage(lang);
+                    if (window.feedbackApp && window.feedbackApp.settingsManager) {
+                        window.feedbackApp.settingsManager.set('language', lang);
+                    } else {
+                        this.setLanguage(lang);
+                    }
                 };
                 option.addEventListener('click', option._languageClickHandler);
             });

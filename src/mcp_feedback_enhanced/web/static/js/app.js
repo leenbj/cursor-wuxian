@@ -168,7 +168,7 @@
 
                         // 3. 初始化 UI 管理器
                         self.uiManager = new window.MCPFeedback.UIManager({
-                            currentTab: settings.activeTab,
+                            // 移除 activeTab - 頁籤切換無需持久化
                             layoutMode: settings.layoutMode,
                             onTabChange: function(tabName) {
                                 self.handleTabChange(tabName);
@@ -178,8 +178,7 @@
                             }
                         });
 
-                        // 4. 初始化標籤頁管理器
-                        self.tabManager = new window.MCPFeedback.TabManager();
+
 
                         // 5. 初始化連線監控器
                         self.connectionMonitor = new window.MCPFeedback.ConnectionMonitor({
@@ -401,8 +400,8 @@
             this.imageHandler.reinitialize(layoutMode);
         }
 
-        // 保存當前頁籤設定
-        this.settingsManager.set('activeTab', tabName);
+        // 移除頁籤狀態保存 - 頁籤切換無需持久化
+        // this.settingsManager.set('activeTab', tabName);
     };
 
     /**
