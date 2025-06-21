@@ -54,14 +54,16 @@ def web_ui_manager() -> Generator[WebUIManager, None, None]:
 
     # 設置測試模式環境變數
     original_test_mode = os.environ.get("MCP_TEST_MODE")
+    original_web_host = os.environ.get("MCP_WEB_HOST")
     original_web_port = os.environ.get("MCP_WEB_PORT")
 
     os.environ["MCP_TEST_MODE"] = "true"
+    os.environ["MCP_WEB_HOST"] = "127.0.0.1"  # 確保測試使用本地主機
     # 使用動態端口範圍避免衝突
     os.environ["MCP_WEB_PORT"] = "0"  # 讓系統自動分配端口
 
     try:
-        manager = WebUIManager(host="127.0.0.1")  # 使用環境變數控制端口
+        manager = WebUIManager()  # 使用環境變數控制主機和端口
         yield manager
     finally:
         # 恢復原始環境變數
@@ -69,6 +71,11 @@ def web_ui_manager() -> Generator[WebUIManager, None, None]:
             os.environ["MCP_TEST_MODE"] = original_test_mode
         else:
             os.environ.pop("MCP_TEST_MODE", None)
+
+        if original_web_host is not None:
+            os.environ["MCP_WEB_HOST"] = original_web_host
+        else:
+            os.environ.pop("MCP_WEB_HOST", None)
 
         if original_web_port is not None:
             os.environ["MCP_WEB_PORT"] = original_web_port

@@ -122,6 +122,7 @@ uvx mcp-feedback-enhanced@latest test
       "timeout": 600,
       "env": {
         "MCP_DEBUG": "false",
+        "MCP_WEB_HOST": "127.0.0.1",
         "MCP_WEB_PORT": "8765"
       },
       "autoApprove": ["interactive_feedback"]
@@ -140,6 +141,7 @@ uvx mcp-feedback-enhanced@latest test
       "timeout": 600,
       "env": {
         "MCP_DESKTOP_MODE": "true",
+        "MCP_WEB_HOST": "127.0.0.1",
         "MCP_WEB_PORT": "8765",
         "MCP_DEBUG": "false"
       },
@@ -168,6 +170,7 @@ uvx mcp-feedback-enhanced@latest test
 | 变量 | 用途 | 值 | 默认 |
 |------|------|-----|------|
 | `MCP_DEBUG` | 调试模式 | `true`/`false` | `false` |
+| `MCP_WEB_HOST` | Web UI 主机 | IP 地址或主机名 | `127.0.0.1` |
 | `MCP_WEB_PORT` | Web UI 端口 | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | 桌面应用程序模式 | `true`/`false` | `false` |
 

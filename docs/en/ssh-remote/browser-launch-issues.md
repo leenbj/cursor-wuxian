@@ -17,7 +17,9 @@ SSH Remote environment limitations:
 
 ## Solution
 
-### Step 1: Configure Port (Optional)
+### Step 1: Configure Host and Port
+
+You have to set `MCP_WEB_HOST` environment to `0.0.0.0` to allow port forwarding.
 
 MCP Feedback Enhanced uses port **8765** by default, but you can customize the port:
 

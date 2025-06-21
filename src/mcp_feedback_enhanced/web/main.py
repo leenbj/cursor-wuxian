@@ -37,7 +37,14 @@ class WebUIManager:
     """Web UI 管理器 - 重構為單一活躍會話模式"""
 
     def __init__(self, host: str = "127.0.0.1", port: int | None = None):
-        self.host = host
+        # 確定偏好主機：環境變數 > 參數 > 預設值 127.0.0.1
+        env_host = os.getenv("MCP_WEB_HOST")
+        if env_host:
+            self.host = env_host
+            debug_log(f"使用環境變數指定的主機: {self.host}")
+        else:
+            self.host = host
+            debug_log(f"未設定 MCP_WEB_HOST 環境變數，使用預設主機 {self.host}")
 
         # 確定偏好端口：環境變數 > 參數 > 預設值 8765
         preferred_port = 8765

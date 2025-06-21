@@ -128,11 +128,12 @@ def test_web_ui_simple():
 
         # 設置測試模式，禁用自動清理避免權限問題
         os.environ["MCP_TEST_MODE"] = "true"
+        os.environ["MCP_WEB_HOST"] = "127.0.0.1"
         # 設置更高的端口範圍避免系統保留端口
         os.environ["MCP_WEB_PORT"] = "9765"
 
         print("🔧 創建 Web UI 管理器...")
-        manager = WebUIManager(host="127.0.0.1")  # 使用動態端口分配
+        manager = WebUIManager()  # 使用環境變數控制主機和端口
 
         print("🔧 創建測試會話...")
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -254,6 +255,7 @@ def process_feedback(data):
     finally:
         # 清理測試環境變數
         os.environ.pop("MCP_TEST_MODE", None)
+        os.environ.pop("MCP_WEB_HOST", None)
         os.environ.pop("MCP_WEB_PORT", None)
 
 

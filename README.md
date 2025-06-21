@@ -122,6 +122,7 @@ uvx mcp-feedback-enhanced@latest test
       "timeout": 600,
       "env": {
         "MCP_DEBUG": "false",
+        "MCP_WEB_HOST": "127.0.0.1",
         "MCP_WEB_PORT": "8765"
       },
       "autoApprove": ["interactive_feedback"]
@@ -140,6 +141,7 @@ uvx mcp-feedback-enhanced@latest test
       "timeout": 600,
       "env": {
         "MCP_DESKTOP_MODE": "true",
+        "MCP_WEB_HOST": "127.0.0.1",
         "MCP_WEB_PORT": "8765",
         "MCP_DEBUG": "false"
       },
@@ -168,6 +170,7 @@ follow mcp-feedback-enhanced instructions
 | Variable | Purpose | Values | Default |
 |----------|---------|--------|---------|
 | `MCP_DEBUG` | Debug mode | `true`/`false` | `false` |
+| `MCP_WEB_HOST` | Web UI host | IP address or hostname | `127.0.0.1` |
 | `MCP_WEB_PORT` | Web UI port | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | Desktop application mode | `true`/`false` | `false` |
 
