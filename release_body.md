@@ -1,7 +1,8 @@
-# Release v2.5.4 - Latest Release
+# Release v2.5.5 - 2025-06-21 - SSH Remote Development Support & Stability Enhancement
 
 ## 🌟 Key Highlights
-
+- 🌐 **SSH Remote Development Support**: Added `MCP_WEB_HOST` environment variable for configuring web server host binding
+- 🍎 **Enhanced macOS Compilation Support**: Added `.cargo/config.toml` configuration file
 
 ## 🌐 Detailed Release Notes
 
@@ -23,7 +24,7 @@
 uvx mcp-feedback-enhanced@latest
 
 # This specific version / 此特定版本
-uvx mcp-feedback-enhanced@v2.5.4
+uvx mcp-feedback-enhanced@v2.5.5
 ```
 
 ## 🔗 Links

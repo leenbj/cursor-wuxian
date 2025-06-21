@@ -1,1 +1,2 @@
-
+- 🌐 **SSH Remote Development Support**: Added `MCP_WEB_HOST` environment variable for configuring web server host binding
+- 🍎 **Enhanced macOS Compilation Support**: Added `.cargo/config.toml` configuration file
