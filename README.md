@@ -8,7 +8,7 @@
 
 ## 🎯 Core Concept
 
-This is an [MCP server](https://modelcontextprotocol.io/) that establishes **feedback-oriented development workflows**, providing **Web UI and Desktop Application** dual interface options, perfectly adapting to local, **SSH Remote environments** (Cursor SSH Remote, VS Code Remote SSH), and **WSL (Windows Subsystem for Linux) environments**. By guiding AI to confirm with users rather than making speculative operations, it can consolidate multiple tool calls into a single feedback-oriented request, dramatically reducing platform costs and improving development efficiency.
+This is an [MCP server](https://modelcontextprotocol.io/) that establishes **feedback-oriented development workflows**, providing **Web UI and Desktop Application** dual interface options, perfectly adapting to local, **SSH Remote environments**, and **WSL (Windows Subsystem for Linux) environments**. By guiding AI to confirm with users rather than making speculative operations, it can consolidate multiple tool calls into a single feedback-oriented request, dramatically reducing platform costs and improving development efficiency.
 
 **🌐 Dual Interface Architecture Advantages:**
 - 🖥️ **Desktop Application**: Native cross-platform desktop experience, supporting Windows, macOS, Linux
@@ -92,9 +92,6 @@ This is an [MCP server](https://modelcontextprotocol.io/) that establishes **fee
 ```bash
 # Install uv (if not already installed)
 pip install uv
-
-# Quick test
-uvx mcp-feedback-enhanced@latest test
 ```
 
 ### 2. Configure MCP
@@ -170,9 +167,13 @@ follow mcp-feedback-enhanced instructions
 | Variable | Purpose | Values | Default |
 |----------|---------|--------|---------|
 | `MCP_DEBUG` | Debug mode | `true`/`false` | `false` |
-| `MCP_WEB_HOST` | Web UI host | IP address or hostname | `127.0.0.1` |
+| `MCP_WEB_HOST` | Web UI host binding | IP address or hostname | `127.0.0.1` |
 | `MCP_WEB_PORT` | Web UI port | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | Desktop application mode | `true`/`false` | `false` |
+
+**`MCP_WEB_HOST` Explanation**:
+- `127.0.0.1` (default): Local access only, higher security
+- `0.0.0.0`: Allow remote access, suitable for SSH remote development environments
 
 ### Testing Options
 ```bash
@@ -230,23 +231,52 @@ make quick-check                                        # Quick check and auto-f
 
 ## 🆕 Version History
 
-📋 **Complete Version History:** [RELEASE_NOTES/CHANGELOG.md](RELEASE_NOTES/CHANGELOG.md)
+📋 **Complete Version History:** [RELEASE_NOTES/CHANGELOG.en.md](RELEASE_NOTES/CHANGELOG.en.md)
 
-### Latest Version Highlights (v2.5.0)
-- 🖥️ **Desktop Application**: Brand new cross-platform desktop application supporting Windows, macOS, Linux
-- 📋 **AI Work Summary Markdown Display**: Support for Markdown syntax rendering including headers, bold text, code blocks, lists, links and other formats
-- ⚡ **Significant Performance Enhancement**: Introduced debounce/throttle mechanisms to reduce unnecessary rendering and network requests
-- 📊 **Session History Storage Improvement**: Migrated from localStorage to server-side local file storage
-- 🌐 **Network Connection Stability**: Improved WebSocket reconnection mechanism with network status detection
-- 🎨 **UI Rendering Optimization**: Optimized rendering performance for session management, statistics, and status indicators
-- 🛠️ **Build Process Optimization**: Added Makefile desktop application build commands and development tools
-- 📚 **Documentation Enhancement**: Added desktop application build guide and workflow documentation
+### Latest Version Highlights (v2.5.5)
+- 🌐 **SSH Remote Development Support**: Added `MCP_WEB_HOST` environment variable, completely solving SSH remote development access issues
+- 🍎 **Enhanced macOS Compilation Support**: Added PyO3 compilation configuration, supporting Intel and Apple Silicon architectures
+- 📝 **Tool Documentation Optimization**: Moved LLM instructions to tool docstring, improving token efficiency
+- 🖥️ **Desktop Application MCP Protocol Fix**: Fixed MCP protocol communication pollution issues in desktop mode
+- 📦 **Packaging Process Fix**: Fixed multi-platform desktop application packaging and publishing issues
+- 🔧 **Release Process Optimization**: Improved stability of automated release workflows
+- 📊 **AI Work Summary Markdown Enhancement**: Improved Markdown rendering effects and compatibility
+- 🔄 **Session History Process Optimization**: Improved session saving and management mechanisms
 
 ## 🐛 Common Issues
 
 ### 🌐 SSH Remote Environment Issues
-**Q: Browser cannot launch in SSH Remote environment**
-A: This is normal. SSH Remote environments have no graphical interface, requiring manual opening in local browser. For detailed solutions, refer to: [SSH Remote Environment Usage Guide](docs/en/ssh-remote/browser-launch-issues.md)
+**Q: Browser cannot launch or access in SSH Remote environment**
+A: Two solutions available:
+
+**Solution 1: Environment Variable Setting (v2.5.5 Recommended)**
+Set `"MCP_WEB_HOST": "0.0.0.0"` in MCP configuration to allow remote access:
+```json
+{
+  "mcpServers": {
+    "mcp-feedback-enhanced": {
+      "command": "uvx",
+      "args": ["mcp-feedback-enhanced@latest"],
+      "timeout": 600,
+      "env": {
+        "MCP_WEB_HOST": "0.0.0.0",
+        "MCP_WEB_PORT": "8765"
+      },
+      "autoApprove": ["interactive_feedback"]
+    }
+  }
+}
+```
+Then open in local browser: `http://[remote-host-IP]:8765`
+
+**Solution 2: SSH Port Forwarding (Traditional Method)**
+1. Use default configuration (`MCP_WEB_HOST`: `127.0.0.1`)
+2. Set up SSH port forwarding:
+   - **VS Code Remote SSH**: Press `Ctrl+Shift+P` → "Forward a Port" → Enter `8765`
+   - **Cursor SSH Remote**: Manually add port forwarding rule (port 8765)
+3. Open in local browser: `http://localhost:8765`
+
+For detailed solutions, refer to: [SSH Remote Environment Usage Guide](docs/en/ssh-remote/browser-launch-issues.md)
 
 **Q: Why am I not receiving new MCP feedback?**
 A: Likely a WebSocket connection issue. **Solution**: Directly refresh the browser page.
@@ -339,6 +369,15 @@ If you find it useful, please:
 ### Contributors
 **penn201500** - [GitHub @penn201500](https://github.com/penn201500)
 - 🎯 Auto-focus input box feature ([PR #39](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/39))
+
+**leo108** - [GitHub @leo108](https://github.com/leo108)
+- 🌐 SSH Remote Development Support (`MCP_WEB_HOST` environment variable) ([PR #113](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/113))
+
+**Alsan** - [GitHub @Alsan](https://github.com/Alsan)
+- 🍎 macOS PyO3 Compilation Configuration Support ([PR #93](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/93))
+
+**fireinice** - [GitHub @fireinice](https://github.com/fireinice)
+- 📝 Tool Documentation Optimization (LLM instructions moved to docstring) ([PR #105](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/105))
 
 ### Community Support
 - **Discord:** [https://discord.gg/Gur2V67](https://discord.gg/Gur2V67)

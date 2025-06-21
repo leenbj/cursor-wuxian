@@ -8,7 +8,7 @@
 
 ## 🎯 核心概念
 
-这是一个 [MCP 服务器](https://modelcontextprotocol.io/)，建立**反馈导向的开发工作流程**，提供**Web UI 和桌面应用程序**双重选择，完美适配本地、**SSH Remote 环境**（Cursor SSH Remote、VS Code Remote SSH）与 **WSL (Windows Subsystem for Linux) 环境**。通过引导 AI 与用户确认而非进行推测性操作，可将多次工具调用合并为单次反馈导向请求，大幅节省平台成本并提升开发效率。
+这是一个 [MCP 服务器](https://modelcontextprotocol.io/)，建立**反馈导向的开发工作流程**，提供**Web UI 和桌面应用程序**双重选择，完美适配本地、**SSH 远程开发环境**与 **WSL (Windows Subsystem for Linux) 环境**。通过引导 AI 与用户确认而非进行推测性操作，可将多次工具调用合并为单次反馈导向请求，大幅节省平台成本并提升开发效率。
 
 **🌐 双重界面架构优势：**
 - 🖥️ **桌面应用程序**：原生跨平台桌面体验，支持 Windows、macOS、Linux
@@ -92,9 +92,6 @@
 ```bash
 # 安装 uv（如果尚未安装）
 pip install uv
-
-# 快速测试
-uvx mcp-feedback-enhanced@latest test
 ```
 
 ### 2. 配置 MCP
@@ -170,9 +167,13 @@ uvx mcp-feedback-enhanced@latest test
 | 变量 | 用途 | 值 | 默认 |
 |------|------|-----|------|
 | `MCP_DEBUG` | 调试模式 | `true`/`false` | `false` |
-| `MCP_WEB_HOST` | Web UI 主机 | IP 地址或主机名 | `127.0.0.1` |
+| `MCP_WEB_HOST` | Web UI 主机绑定 | IP 地址或主机名 | `127.0.0.1` |
 | `MCP_WEB_PORT` | Web UI 端口 | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | 桌面应用程序模式 | `true`/`false` | `false` |
+
+**`MCP_WEB_HOST` 说明**：
+- `127.0.0.1`（默认）：仅本地访问，安全性较高
+- `0.0.0.0`：允许远程访问，适用于 SSH 远程开发环境
 
 ### 测试选项
 ```bash
@@ -232,21 +233,50 @@ make quick-check                                        # 快速检查并自动�
 
 📋 **完整版本更新记录：** [RELEASE_NOTES/CHANGELOG.zh-CN.md](RELEASE_NOTES/CHANGELOG.zh-CN.md)
 
-### 最新版本亮点（v2.5.0）
-- 🖥️ **桌面应用程序**: 全新跨平台桌面应用，支持 Windows、macOS、Linux
-- 📋 **AI 工作摘要 Markdown 显示**: 支持 Markdown 语法渲染，包含标题、粗体、代码区块、列表、链接等格式
-- ⚡ **性能大幅提升**: 引入防抖/节流机制，减少不必要的渲染和网络请求
-- 📊 **会话历史存储改进**: 从 localStorage 改为服务器端本地文件存储
-- 🌐 **网络连接稳定性**: 改进 WebSocket 重连机制，支持网络状态检测
-- 🎨 **UI 渲染优化**: 优化会话管理、统计信息、状态指示器的渲染性能
-- 🛠️ **构建流程优化**: 新增 Makefile 桌面应用构建命令和开发工具
-- 📚 **文档完善**: 新增桌面应用构建指南和工作流程说明
+### 最新版本亮点（v2.5.5）
+- 🌐 **SSH 远程开发支持**: 新增 `MCP_WEB_HOST` 环境变量，彻底解决 SSH 远程开发访问问题
+- 🍎 **macOS 编译支持增强**: 新增 PyO3 编译配置，支持 Intel 和 Apple Silicon 架构
+- 📝 **工具文档优化**: 将 LLM 指令移至工具 docstring，提升 token 效率
+- 🖥️ **桌面应用 MCP 协议修复**: 修正桌面模式下 MCP 协议通信污染问题
+- 📦 **打包流程修复**: 修正多平台桌面应用打包和发布问题
+- 🔧 **发布流程优化**: 改进自动化发布工作流程的稳定性
+- 📊 **AI 工作摘要 Markdown 增强**: 改进 Markdown 渲染效果和兼容性
+- 🔄 **会话历史流程优化**: 改进会话保存和管理机制
 
 ## 🐛 常见问题
 
 ### 🌐 SSH Remote 环境问题
-**Q: SSH Remote 环境下浏览器无法启动**
-A: 这是正常现象。SSH Remote 环境没有图形界面，需要手动在本地浏览器打开。详细解决方案请参考：[SSH Remote 环境使用指南](docs/zh-CN/ssh-remote/browser-launch-issues.md)
+**Q: SSH Remote 环境下浏览器无法启动或无法访问**
+A: 提供两种解决方案：
+
+**方案一：环境变量设置（v2.5.5 推荐）**
+在 MCP 配置中设置 `"MCP_WEB_HOST": "0.0.0.0"` 允许远程访问：
+```json
+{
+  "mcpServers": {
+    "mcp-feedback-enhanced": {
+      "command": "uvx",
+      "args": ["mcp-feedback-enhanced@latest"],
+      "timeout": 600,
+      "env": {
+        "MCP_WEB_HOST": "0.0.0.0",
+        "MCP_WEB_PORT": "8765"
+      },
+      "autoApprove": ["interactive_feedback"]
+    }
+  }
+}
+```
+然后在本地浏览器打开：`http://[远程主机IP]:8765`
+
+**方案二：SSH 端口转发（传统方法）**
+1. 使用默认配置（`MCP_WEB_HOST`: `127.0.0.1`）
+2. 设置 SSH 端口转发：
+   - **VS Code Remote SSH**: 按 `Ctrl+Shift+P` → "Forward a Port" → 输入 `8765`
+   - **Cursor SSH Remote**: 手动添加端口转发规则（端口 8765）
+3. 在本地浏览器打开：`http://localhost:8765`
+
+详细解决方案请参考：[SSH Remote 环境使用指南](docs/zh-CN/ssh-remote/browser-launch-issues.md)
 
 **Q: 为什么没有接收到 MCP 新的反馈？**
 A: 可能是 WebSocket 连接问题。**解决方法**：直接重新刷新浏览器页面。
@@ -339,6 +369,15 @@ A: 各种 AI 模型（包括 Gemini Pro 2.5、Claude 等）在图片解析上可
 ### 贡献者
 **penn201500** - [GitHub @penn201500](https://github.com/penn201500)
 - 🎯 自动聚焦输入框功能 ([PR #39](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/39))
+
+**leo108** - [GitHub @leo108](https://github.com/leo108)
+- 🌐 SSH 远程开发支持 (`MCP_WEB_HOST` 环境变量) ([PR #113](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/113))
+
+**Alsan** - [GitHub @Alsan](https://github.com/Alsan)
+- 🍎 macOS PyO3 编译配置支持 ([PR #93](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/93))
+
+**fireinice** - [GitHub @fireinice](https://github.com/fireinice)
+- 📝 工具文档优化 (LLM 指令移至 docstring) ([PR #105](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/105))
 
 ### 社群支援
 - **Discord：** [https://discord.gg/Gur2V67](https://discord.gg/Gur2V67)

@@ -92,9 +92,6 @@
 ```bash
 # 安裝 uv（如果尚未安裝）
 pip install uv
-
-# 快速測試
-uvx mcp-feedback-enhanced@latest test
 ```
 
 ### 2. 配置 MCP
@@ -170,9 +167,13 @@ uvx mcp-feedback-enhanced@latest test
 | 變數 | 用途 | 值 | 默認 |
 |------|------|-----|------|
 | `MCP_DEBUG` | 調試模式 | `true`/`false` | `false` |
-| `MCP_WEB_HOST` | Web UI 主機 | IP 地址或主機名 | `127.0.0.1` |
+| `MCP_WEB_HOST` | Web UI 主機綁定 | IP 地址或主機名 | `127.0.0.1` |
 | `MCP_WEB_PORT` | Web UI 端口 | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | 桌面應用程式模式 | `true`/`false` | `false` |
+
+**`MCP_WEB_HOST` 說明**：
+- `127.0.0.1`（預設）：僅本地存取，安全性較高
+- `0.0.0.0`：允許遠端存取，適用於 SSH 遠端開發環境
 
 ### 測試選項
 ```bash
@@ -233,21 +234,50 @@ make quick-check                                        # 快速檢查並自動�
 
 📋 **完整版本更新記錄：** [RELEASE_NOTES/CHANGELOG.zh-TW.md](RELEASE_NOTES/CHANGELOG.zh-TW.md)
 
-### 最新版本亮點（v2.5.0）
-- 🖥️ **桌面應用程式**: 全新跨平台桌面應用，支援 Windows、macOS、Linux
-- 📋 **AI 工作摘要 Markdown 顯示**: 支援 Markdown 語法渲染，包含標題、粗體、程式碼區塊、列表、連結等格式
-- ⚡ **效能大幅提升**: 引入防抖/節流機制，減少不必要的渲染和網路請求
-- 📊 **會話歷史存儲改進**: 從 localStorage 改為伺服器端本地檔案存儲
-- 🌐 **網路連接穩定性**: 改進 WebSocket 重連機制，支援網路狀態檢測
-- 🎨 **UI 渲染優化**: 優化會話管理、統計資訊、狀態指示器的渲染效能
-- 🛠️ **構建流程優化**: 新增 Makefile 桌面應用構建命令和開發工具
-- 📚 **文檔完善**: 新增桌面應用構建指南和工作流程說明
+### 最新版本亮點（v2.5.5）
+- 🌐 **SSH 遠端開發支援**: 新增 `MCP_WEB_HOST` 環境變數，徹底解決 SSH 遠端開發存取問題
+- 🍎 **macOS 編譯支援增強**: 新增 PyO3 編譯配置，支援 Intel 和 Apple Silicon 架構
+- 📝 **工具文檔優化**: 將 LLM 指令移至工具 docstring，提升 token 效率
+- �️ **桌面應用 MCP 協議修復**: 修正桌面模式下 MCP 協議通訊污染問題
+- 📦 **打包流程修復**: 修正多平台桌面應用打包和發布問題
+- 🔧 **發布流程優化**: 改進自動化發布工作流程的穩定性
+- � **AI 工作摘要 Markdown 增強**: 改進 Markdown 渲染效果和相容性
+- � **會話歷史流程優化**: 改進會話保存和管理機制
 
 ## 🐛 常見問題
 
 ### 🌐 SSH Remote 環境問題
-**Q: SSH Remote 環境下瀏覽器無法啟動**
-A: 這是正常現象。SSH Remote 環境沒有圖形界面，需要手動在本地瀏覽器開啟。詳細解決方案請參考：[SSH Remote 環境使用指南](docs/zh-TW/ssh-remote/browser-launch-issues.md)
+**Q: SSH Remote 環境下瀏覽器無法啟動或無法存取**
+A: 提供兩種解決方案：
+
+**方案一：環境變數設定（v2.5.5 推薦）**
+在 MCP 配置中設定 `"MCP_WEB_HOST": "0.0.0.0"` 允許遠端存取：
+```json
+{
+  "mcpServers": {
+    "mcp-feedback-enhanced": {
+      "command": "uvx",
+      "args": ["mcp-feedback-enhanced@latest"],
+      "timeout": 600,
+      "env": {
+        "MCP_WEB_HOST": "0.0.0.0",
+        "MCP_WEB_PORT": "8765"
+      },
+      "autoApprove": ["interactive_feedback"]
+    }
+  }
+}
+```
+然後在本地瀏覽器開啟：`http://[遠端主機IP]:8765`
+
+**方案二：SSH 端口轉發（傳統方法）**
+1. 使用預設配置（`MCP_WEB_HOST`: `127.0.0.1`）
+2. 設定 SSH 端口轉發：
+   - **VS Code Remote SSH**: 按 `Ctrl+Shift+P` → "Forward a Port" → 輸入 `8765`
+   - **Cursor SSH Remote**: 手動添加端口轉發規則（端口 8765）
+3. 在本地瀏覽器開啟：`http://localhost:8765`
+
+詳細解決方案請參考：[SSH Remote 環境使用指南](docs/zh-TW/ssh-remote/browser-launch-issues.md)
 
 **Q: 為什麼沒有接收到 MCP 新的反饋？**
 A: 可能是 WebSocket 連接問題。**解決方法**：直接重新整理瀏覽器頁面。
@@ -340,6 +370,15 @@ A: 各種 AI 模型（包括 Gemini Pro 2.5、Claude 等）在圖片解析上可
 ### 貢獻者
 **penn201500** - [GitHub @penn201500](https://github.com/penn201500)
 - 🎯 自動聚焦輸入框功能 ([PR #39](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/39))
+
+**leo108** - [GitHub @leo108](https://github.com/leo108)
+- 🌐 SSH 遠端開發支援 (`MCP_WEB_HOST` 環境變數) ([PR #113](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/113))
+
+**Alsan** - [GitHub @Alsan](https://github.com/Alsan)
+- 🍎 macOS PyO3 編譯配置支援 ([PR #93](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/93))
+
+**fireinice** - [GitHub @fireinice](https://github.com/fireinice)
+- 📝 工具文檔優化 (LLM 指令移至 docstring) ([PR #105](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/105))
 
 ### 社群支援
 - **Discord：** [https://discord.gg/Gur2V67](https://discord.gg/Gur2V67)

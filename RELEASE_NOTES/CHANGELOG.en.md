@@ -2,6 +2,45 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [v2.5.5] - 2025-06-21 - SSH Remote Development Support & Stability Enhancement
+
+### 🌟 Version Highlights
+Added SSH remote development environment support, resolving Web UI access issues in remote development scenarios. Enhanced macOS compilation support and desktop application stability for improved developer experience.
+
+### ✨ New Features
+- 🌐 **SSH Remote Development Support**: Added `MCP_WEB_HOST` environment variable for configuring web server host binding
+  - Defaults to `127.0.0.1` for security
+  - Can be set to `0.0.0.0` to allow remote access
+  - Resolves access issues in remote development environments like Cursor SSH Remote
+- 🍎 **Enhanced macOS Compilation Support**: Added `.cargo/config.toml` configuration file
+  - Supports Intel (x86_64) and Apple Silicon (aarch64) architectures
+  - Resolves macOS PyO3 undefined dynamic_lookup compilation issues
+  - Follows PyO3 official recommended best practices
+
+### 🚀 Improvements
+- 📝 **Tool Documentation Optimization**: Moved LLM instructions to tool docstring for improved token efficiency
+- 🎨 **Simplified User Configuration**: Removed complex Cursor rules configuration
+- 📊 **Enhanced AI Work Summary Markdown**: Improved Markdown rendering effects and compatibility
+- 🔄 **Session History Process Optimization**: Enhanced session saving and management mechanisms
+
+### 🐛 Bug Fixes
+- 🖥️ **Desktop Application MCP Protocol Fix**: Fixed MCP protocol communication pollution issues in desktop mode
+- 📦 **Packaging Process Fix**: Fixed multi-platform desktop application packaging and publishing issues
+- 🔧 **Release Process Optimization**: Improved stability of automated release workflows
+- 🔥 **Removed ESC Shortcut**: Removed ESC shortcut functionality that could cause accidental closure
+
+### 🛠️ Technical Improvements
+- 🏗️ **Enhanced Build System**: Improved cross-platform compilation configuration and dependency management
+- 📚 **Documentation Automation**: Enhanced tool self-documentation following FastMCP best practices
+- 🔍 **Enhanced Debugging Features**: Added more detailed debugging information and error handling
+
+### 📋 Usage Instructions
+- **SSH Remote Development**: Set `"MCP_WEB_HOST": "0.0.0.0"` in MCP configuration to allow remote access
+- **Local Development**: Keep default `"MCP_WEB_HOST": "127.0.0.1"` for security
+- **macOS Development**: New compilation configuration will take effect automatically without additional setup
+
+---
+
 ## [v2.5.0] - 2025-06-15 - Desktop Application & Performance Optimization
 
 ### 🌟 Version Highlights
