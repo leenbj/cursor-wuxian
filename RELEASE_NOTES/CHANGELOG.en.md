@@ -2,6 +2,26 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [v2.5.6] - 2025-06-21 - Settings Save Mechanism Optimization & Interface Enhancement
+
+### 🌟 Version Highlights
+Refactored settings save mechanism to resolve language switching save issues, and added visual icons to settings interface for enhanced user experience.
+
+### 🚀 Improvements
+- 🔨 **Settings Save Mechanism Refactoring**: Completely removed localStorage dependency, switched to unified FastAPI backend save mechanism
+  - Resolved settings not saving correctly during language switching
+  - Removed debounce mechanism to ensure immediate settings save
+  - Enhanced reliability and consistency of settings save
+- ✨ **Settings Interface Enhancement**: Added corresponding icons to functional sections within settings tabs
+  - Improved interface visual effects and user experience
+  - More intuitive feature identification
+
+### 🛠️ Technical Improvements
+- 📊 **Unified Storage Architecture**: All settings now use JSON file storage for cross-environment consistency
+- 🔧 **Code Simplification**: Removed complex localStorage-related code, reducing maintenance costs
+
+---
+
 ## [v2.5.5] - 2025-06-21 - SSH Remote Development Support & Stability Enhancement
 
 ### 🌟 Version Highlights
