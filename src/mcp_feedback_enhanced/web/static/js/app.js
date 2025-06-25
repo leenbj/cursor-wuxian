@@ -684,6 +684,30 @@
     FeedbackApp.prototype._originalHandleSessionUpdated = function(data) {
         console.log('🔄 處理會話更新:', data.session_info);
 
+        // 檢查是否是新會話創建的通知
+        if (data.action === 'new_session_created') {
+            console.log('🆕 檢測到新會話創建，準備刷新頁面顯示新內容');
+
+            // 播放音效通知
+            if (this.audioManager) {
+                this.audioManager.playNotification();
+            }
+
+            // 顯示新會話通知
+            window.MCPFeedback.Utils.showMessage(
+                data.message || '新的 MCP 會話已創建，正在刷新頁面...',
+                window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS
+            );
+
+            // 延遲一小段時間讓用戶看到通知，然後刷新頁面
+            setTimeout(function() {
+                console.log('🔄 刷新頁面以顯示新會話內容');
+                window.location.reload();
+            }, 1500);
+
+            return; // 提前返回，不執行後續的局部更新邏輯
+        }
+
         // 播放音效通知
         if (this.audioManager) {
             this.audioManager.playNotification();

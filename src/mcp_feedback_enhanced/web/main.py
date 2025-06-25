@@ -585,7 +585,10 @@ class WebUIManager:
 
             if has_active_tabs:
                 debug_log("檢測到活躍標籤頁，不開啟新瀏覽器視窗")
-                debug_log(f"用戶可以在現有標籤頁中查看更新：{url}")
+                debug_log(f"向現有標籤頁發送刷新通知：{url}")
+
+                # 向現有標籤頁發送刷新通知
+                await self.notify_existing_tab_to_refresh()
                 return True
 
             # 沒有活躍標籤頁，開啟新瀏覽器視窗
@@ -799,40 +802,46 @@ class WebUIManager:
         except Exception as e:
             debug_log(f"檢查 WebSocket 連接狀態時發生錯誤: {e}")
 
-    async def _check_active_tabs(self) -> bool:
-        """檢查是否有活躍標籤頁 - 優先檢查全局狀態，回退到 API"""
+    async def notify_existing_tab_to_refresh(self):
+        """通知現有標籤頁刷新顯示新會話內容"""
         try:
-            # 首先檢查全局標籤頁狀態
-            global_count = self.get_global_active_tabs_count()
-            if global_count > 0:
-                debug_log(f"檢測到 {global_count} 個全局活躍標籤頁")
+            if not self.current_session or not self.current_session.websocket:
+                debug_log("沒有活躍的WebSocket連接，無法發送刷新通知")
+                return
+
+            # 構建刷新通知消息
+            refresh_message = {
+                "type": "session_updated",
+                "action": "new_session_created",
+                "message": "新的 MCP 會話已創建，頁面將自動刷新",
+                "session_info": {
+                    "session_id": self.current_session.session_id,
+                    "project_directory": self.current_session.project_directory,
+                    "summary": self.current_session.summary,
+                    "status": self.current_session.status
+                }
+            }
+
+            # 發送刷新通知
+            await self.current_session.websocket.send_json(refresh_message)
+            debug_log(f"已向現有標籤頁發送刷新通知: {self.current_session.session_id}")
+
+        except Exception as e:
+            debug_log(f"發送刷新通知失敗: {e}")
+
+    async def _check_active_tabs(self) -> bool:
+        """檢查是否有活躍標籤頁 - 直接檢查WebSocket連接"""
+        try:
+            # 直接檢查是否有活躍的WebSocket連接
+            if self.current_session and self.current_session.websocket:
+                debug_log("檢測到活躍的WebSocket連接")
                 return True
 
-            # 如果全局狀態沒有活躍標籤頁，嘗試通過 API 檢查
-            # 等待一小段時間讓服務器完全啟動
-            await asyncio.sleep(0.5)
-
-            # 調用活躍標籤頁 API
-            import aiohttp
-
-            timeout = aiohttp.ClientTimeout(total=2)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(
-                    f"{self.get_server_url()}/api/active-tabs"
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        tab_count = data.get("count", 0)
-                        debug_log(f"API 檢測到 {tab_count} 個活躍標籤頁")
-                        return bool(tab_count > 0)
-                    debug_log(f"檢查活躍標籤頁失敗，狀態碼：{response.status}")
-                    return False
-
-        except TimeoutError:
-            debug_log("檢查活躍標籤頁超時")
+            debug_log("沒有檢測到活躍的WebSocket連接")
             return False
+
         except Exception as e:
-            debug_log(f"檢查活躍標籤頁時發生錯誤：{e}")
+            debug_log(f"檢查活躍連接時發生錯誤：{e}")
             return False
 
     def get_server_url(self) -> str:
