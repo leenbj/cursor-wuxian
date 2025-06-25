@@ -8,7 +8,7 @@
 
 class I18nManager {
     constructor() {
-        this.currentLanguage = 'zh-TW';
+        this.currentLanguage = 'zh-CN';
         this.translations = {};
         this.loadingPromise = null;
     }

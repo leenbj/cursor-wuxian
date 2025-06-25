@@ -753,7 +753,7 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
+  max-width: 750px;
   width: 90%;
   max-height: 80vh;
   overflow: hidden;
@@ -854,11 +854,149 @@
 
 .detail-value.summary {
   background: var(--bg-secondary);
-  padding: 8px 12px;
+  padding: 0;
   border-radius: 6px;
   border-left: 3px solid var(--accent-color);
   line-height: 1.4;
   margin-top: 4px;
+  position: relative;
+}
+
+.summary-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.btn-copy-summary {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+  opacity: 0.8;
+}
+
+.btn-copy-summary:hover {
+  opacity: 1;
+  background: #1976d2;
+  transform: scale(1.05);
+}
+
+.summary-content {
+  padding: 8px 12px;
+  padding-right: 50px; /* 为复制按钮留出空间 */
+}
+
+/* 为会话详情弹窗中的摘要内容应用与反馈页面相同的 Markdown 样式 */
+.detail-value.summary .summary-content h1,
+.detail-value.summary .summary-content h2,
+.detail-value.summary .summary-content h3,
+.detail-value.summary .summary-content h4,
+.detail-value.summary .summary-content h5,
+.detail-value.summary .summary-content h6 {
+  color: var(--text-primary);
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+}
+
+.detail-value.summary .summary-content h1 { font-size: 20px; }
+.detail-value.summary .summary-content h2 { font-size: 18px; }
+.detail-value.summary .summary-content h3 { font-size: 16px; }
+.detail-value.summary .summary-content h4 { font-size: 14px; }
+.detail-value.summary .summary-content h5 { font-size: 13px; }
+.detail-value.summary .summary-content h6 { font-size: 12px; }
+
+.detail-value.summary .summary-content p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.detail-value.summary .summary-content strong {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.detail-value.summary .summary-content em {
+  font-style: italic;
+  color: var(--text-primary);
+}
+
+.detail-value.summary .summary-content code {
+  background: var(--bg-tertiary);
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11px;
+  color: var(--accent-color);
+}
+
+.detail-value.summary .summary-content pre {
+  background: var(--bg-tertiary);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 12px 0;
+  border-left: 3px solid var(--accent-color);
+}
+
+.detail-value.summary .summary-content pre code {
+  background: none;
+  padding: 0;
+  color: var(--text-primary);
+}
+
+.detail-value.summary .summary-content ul,
+.detail-value.summary .summary-content ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.detail-value.summary .summary-content li {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.detail-value.summary .summary-content blockquote {
+  border-left: 4px solid var(--accent-color);
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: rgba(0, 122, 204, 0.05);
+  font-style: italic;
+}
+
+/* 复制提示样式 */
+.copy-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  z-index: 10000;
+  opacity: 0;
+  transform: translateX(100px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.copy-toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.copy-toast-success {
+  background: var(--success-color);
+}
+
+.copy-toast-error {
+  background: var(--error-color);
 }
 
 .modal-footer {
@@ -922,6 +1060,36 @@
 
 .user-message-item:hover {
   background: var(--bg-secondary);
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.message-header .btn-copy-message {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all var(--transition-fast) ease;
+  opacity: 0.7;
+  margin-left: 8px;
+}
+
+.message-header .btn-copy-message:hover {
+  opacity: 1;
+  background: #1976d2;
+  transform: scale(1.05);
+}
+
+.user-message-item:hover .btn-copy-message {
+  opacity: 0.9;
 }
 
 .message-header {

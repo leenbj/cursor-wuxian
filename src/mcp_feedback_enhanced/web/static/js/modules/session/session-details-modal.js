@@ -45,6 +45,9 @@
 
         console.log('🔍 顯示會話詳情:', sessionData.session_id);
 
+        // 存储当前会话数据，供复制功能使用
+        this.currentSessionData = sessionData;
+
         // 關閉現有彈窗
         this.closeModal();
 
@@ -166,7 +169,12 @@
                         </div>
                         <div class="detail-row">
                             <span class="detail-label">${i18n ? i18n.t('sessionManagement.aiSummary') : 'AI 摘要'}:</span>
-                            <div class="detail-value summary">${this.escapeHtml(details.summary)}</div>
+                            <div class="detail-value summary">
+                                <div class="summary-actions">
+                                    <button class="btn-copy-summary" title="复制源码" aria-label="复制源码">📋</button>
+                                </div>
+                                <div class="summary-content">${this.renderMarkdownSafely(details.summary)}</div>
+                            </div>
                         </div>
                         ${this.createUserMessagesSection(details)}
                     </div>
@@ -241,11 +249,12 @@
             }
 
             messagesHtml += `
-                <div class="user-message-item">
+                <div class="user-message-item" data-message-index="${index}">
                     <div class="message-header">
                         <span class="message-index">#${index + 1}</span>
                         <span class="message-time">${timestamp}</span>
                         <span class="message-method">${submissionMethod}</span>
+                        <button class="btn-copy-message" title="复制消息内容" aria-label="复制消息内容" data-message-content="${this.escapeHtml(message.content)}">📋</button>
                     </div>
                     ${contentHtml}
                 </div>
@@ -310,6 +319,24 @@
             };
             document.addEventListener('keydown', this.keydownHandler);
         }
+
+        // 复制摘要按钮
+        const copyBtn = this.currentModal.querySelector('.btn-copy-summary');
+        if (copyBtn) {
+            DOMUtils.addEventListener(copyBtn, 'click', function() {
+                self.copySummaryToClipboard();
+            });
+        }
+
+        // 复制用户消息按钮
+        const copyMessageBtns = this.currentModal.querySelectorAll('.btn-copy-message');
+        copyMessageBtns.forEach(function(btn) {
+            DOMUtils.addEventListener(btn, 'click', function(e) {
+                e.stopPropagation(); // 防止事件冒泡
+                const messageContent = btn.getAttribute('data-message-content');
+                self.copyMessageToClipboard(messageContent);
+            });
+        });
     };
 
     /**
@@ -355,10 +382,196 @@
      */
     SessionDetailsModal.prototype.escapeHtml = function(text) {
         if (!text) return '';
-        
+
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    };
+
+    /**
+     * 安全地渲染 Markdown 內容
+     */
+    SessionDetailsModal.prototype.renderMarkdownSafely = function(content) {
+        if (!content) return '';
+
+        try {
+            // 检查 marked 和 DOMPurify 是否可用
+            if (typeof window.marked === 'undefined' || typeof window.DOMPurify === 'undefined') {
+                console.warn('⚠️ Markdown 库未载入，使用纯文字显示');
+                return this.escapeHtml(content);
+            }
+
+            // 使用 marked 解析 Markdown
+            const htmlContent = window.marked.parse(content);
+
+            // 使用 DOMPurify 清理 HTML
+            const cleanHtml = window.DOMPurify.sanitize(htmlContent, {
+                ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li', 'blockquote', 'a', 'hr', 'del', 's', 'table', 'thead', 'tbody', 'tr', 'td', 'th'],
+                ALLOWED_ATTR: ['href', 'title', 'class', 'align', 'style'],
+                ALLOW_DATA_ATTR: false
+            });
+
+            return cleanHtml;
+        } catch (error) {
+            console.error('❌ Markdown 渲染失败:', error);
+            return this.escapeHtml(content);
+        }
+    };
+
+    /**
+     * 复制摘要内容到剪贴板
+     */
+    SessionDetailsModal.prototype.copySummaryToClipboard = function() {
+        const self = this; // 定义 self 变量
+
+        try {
+            // 获取原始摘要内容（Markdown 源码）
+            const summaryContent = this.currentSessionData && this.currentSessionData.summary ?
+                this.currentSessionData.summary : '';
+
+            if (!summaryContent) {
+                console.warn('⚠️ 没有摘要内容可复制');
+                return;
+            }
+
+            // 传统复制方法
+            const fallbackCopyTextToClipboard = function(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        console.log('✅ 摘要内容已复制到剪贴板（传统方法）');
+                        self.showToast('✅ 摘要已复制到剪贴板', 'success');
+                    } else {
+                        console.error('❌ 复制失败（传统方法）');
+                        self.showToast('❌ 复制失败，请手动复制', 'error');
+                    }
+                } catch (err) {
+                    console.error('❌ 复制失败:', err);
+                    self.showToast('❌ 复制失败，请手动复制', 'error');
+                } finally {
+                    document.body.removeChild(textArea);
+                }
+            };
+
+            // 使用现代 Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(summaryContent).then(function() {
+                    console.log('✅ 摘要内容已复制到剪贴板');
+                    self.showToast('✅ 摘要已复制到剪贴板', 'success');
+                }).catch(function(err) {
+                    console.error('❌ 复制失败:', err);
+                    // 降级到传统方法
+                    fallbackCopyTextToClipboard(summaryContent);
+                });
+            } else {
+                // 降级到传统方法
+                fallbackCopyTextToClipboard(summaryContent);
+            }
+        } catch (error) {
+            console.error('❌ 复制摘要时发生错误:', error);
+            this.showToast('❌ 复制失败，请手动复制', 'error');
+        }
+    };
+
+    /**
+     * 复制用户消息内容到剪贴板
+     */
+    SessionDetailsModal.prototype.copyMessageToClipboard = function(messageContent) {
+        if (!messageContent) {
+            console.warn('⚠️ 没有消息内容可复制');
+            return;
+        }
+
+        const self = this;
+
+        try {
+            // 使用现代 Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(messageContent).then(function() {
+                    console.log('✅ 用户消息已复制到剪贴板');
+                    self.showToast('✅ 消息已复制到剪贴板', 'success');
+                }).catch(function(err) {
+                    console.error('❌ 复制失败:', err);
+                    // 降级到传统方法
+                    fallbackCopyTextToClipboard(messageContent);
+                });
+            } else {
+                // 降级到传统方法
+                fallbackCopyTextToClipboard(messageContent);
+            }
+
+            // 传统复制方法
+            const fallbackCopyTextToClipboard = function(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        console.log('✅ 用户消息已复制到剪贴板（传统方法）');
+                        self.showToast('✅ 消息已复制到剪贴板', 'success');
+                    } else {
+                        console.error('❌ 复制失败（传统方法）');
+                        self.showToast('❌ 复制失败，请手动复制', 'error');
+                    }
+                } catch (err) {
+                    console.error('❌ 复制失败:', err);
+                    self.showToast('❌ 复制失败，请手动复制', 'error');
+                } finally {
+                    document.body.removeChild(textArea);
+                }
+            };
+        } catch (error) {
+            console.error('❌ 复制用户消息时发生错误:', error);
+            this.showToast('❌ 复制失败，请手动复制', 'error');
+        }
+    };
+
+
+
+    /**
+     * 显示提示消息
+     */
+    SessionDetailsModal.prototype.showToast = function(message, type) {
+        // 创建提示元素
+        const toast = document.createElement('div');
+        toast.className = 'copy-toast copy-toast-' + type;
+        toast.textContent = message;
+
+        // 添加到弹窗中
+        if (this.currentModal) {
+            this.currentModal.appendChild(toast);
+
+            // 显示动画
+            setTimeout(function() {
+                toast.classList.add('show');
+            }, 10);
+
+            // 自动隐藏
+            setTimeout(function() {
+                toast.classList.remove('show');
+                setTimeout(function() {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }, 2000);
+        }
     };
 
     /**
