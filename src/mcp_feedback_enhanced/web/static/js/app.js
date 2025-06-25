@@ -782,8 +782,16 @@
                 }
             }
 
-            // 重置回饋狀態為等待新回饋
-            this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, newSessionId);
+            // 檢查當前狀態，只有在非已提交狀態時才重置
+            const currentState = this.uiManager.getFeedbackState();
+            if (currentState !== window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED) {
+                this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, newSessionId);
+                console.log('🔄 會話更新：重置回饋狀態為等待新回饋');
+            } else {
+                console.log('🔒 會話更新：保護已提交狀態，不重置');
+                // 更新會話ID但保持已提交狀態
+                this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED, newSessionId);
+            }
 
             // 檢查並啟動自動提交（如果條件滿足）
             const self = this;
@@ -851,9 +859,16 @@
             case 'waiting':
                 // 檢查是否是新會話
                 if (sessionId && sessionId !== this.currentSessionId) {
+                    // 新會話：重置為等待狀態
                     this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionId);
-                } else if (this.uiManager.getFeedbackState() !== window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED) {
-                    this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionId);
+                } else {
+                    // 同一會話：保護已提交狀態，避免被覆蓋
+                    const currentState = this.uiManager.getFeedbackState();
+                    if (currentState !== window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED) {
+                        this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionId);
+                    } else {
+                        console.log('🔒 保護已提交狀態，不重置為等待狀態');
+                    }
                 }
 
                 if (statusInfo.status === 'waiting') {

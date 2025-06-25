@@ -584,11 +584,14 @@ class WebUIManager:
             has_active_tabs = await self._check_active_tabs()
 
             if has_active_tabs:
-                debug_log("檢測到活躍標籤頁，不開啟新瀏覽器視窗")
+                debug_log("檢測到活躍標籤頁，發送刷新通知")
                 debug_log(f"向現有標籤頁發送刷新通知：{url}")
 
                 # 向現有標籤頁發送刷新通知
-                await self.notify_existing_tab_to_refresh()
+                refresh_success = await self.notify_existing_tab_to_refresh()
+
+                debug_log(f"刷新通知發送結果: {refresh_success}")
+                debug_log("檢測到活躍標籤頁，不開啟新瀏覽器視窗")
                 return True
 
             # 沒有活躍標籤頁，開啟新瀏覽器視窗
@@ -688,6 +691,7 @@ class WebUIManager:
                 await session.websocket.send_json(
                     {
                         "type": "session_updated",
+                        "action": "new_session_created",
                         "message": "新會話已創建，正在更新頁面內容",
                         "session_info": {
                             "project_directory": session.project_directory,
@@ -739,6 +743,7 @@ class WebUIManager:
                         await old_websocket.send_json(
                             {
                                 "type": "session_updated",
+                                "action": "new_session_created",
                                 "message": "新會話已創建，正在更新頁面內容",
                                 "session_info": {
                                     "project_directory": new_session.project_directory,
@@ -802,12 +807,16 @@ class WebUIManager:
         except Exception as e:
             debug_log(f"檢查 WebSocket 連接狀態時發生錯誤: {e}")
 
-    async def notify_existing_tab_to_refresh(self):
-        """通知現有標籤頁刷新顯示新會話內容"""
+    async def notify_existing_tab_to_refresh(self) -> bool:
+        """通知現有標籤頁刷新顯示新會話內容
+
+        Returns:
+            bool: True 表示成功發送，False 表示失敗
+        """
         try:
             if not self.current_session or not self.current_session.websocket:
                 debug_log("沒有活躍的WebSocket連接，無法發送刷新通知")
-                return
+                return False
 
             # 構建刷新通知消息
             refresh_message = {
@@ -818,7 +827,7 @@ class WebUIManager:
                     "session_id": self.current_session.session_id,
                     "project_directory": self.current_session.project_directory,
                     "summary": self.current_session.summary,
-                    "status": self.current_session.status
+                    "status": self.current_session.status.value
                 }
             }
 
@@ -826,18 +835,35 @@ class WebUIManager:
             await self.current_session.websocket.send_json(refresh_message)
             debug_log(f"已向現有標籤頁發送刷新通知: {self.current_session.session_id}")
 
+            # 簡單等待一下讓消息發送完成
+            await asyncio.sleep(0.2)
+            debug_log("刷新通知發送完成")
+            return True
+
         except Exception as e:
             debug_log(f"發送刷新通知失敗: {e}")
+            return False
 
     async def _check_active_tabs(self) -> bool:
-        """檢查是否有活躍標籤頁 - 直接檢查WebSocket連接"""
+        """檢查是否有活躍標籤頁 - 檢查所有會話的WebSocket連接"""
         try:
-            # 直接檢查是否有活躍的WebSocket連接
+            # 檢查當前會話的WebSocket連接
             if self.current_session and self.current_session.websocket:
-                debug_log("檢測到活躍的WebSocket連接")
+                debug_log("檢測到當前會話的WebSocket連接")
                 return True
 
-            debug_log("沒有檢測到活躍的WebSocket連接")
+            # 檢查其他會話的WebSocket連接
+            active_websockets = 0
+            for session_id, session in self.sessions.items():
+                if session.websocket:
+                    active_websockets += 1
+                    debug_log(f"檢測到會話 {session_id} 的WebSocket連接")
+
+            if active_websockets > 0:
+                debug_log(f"檢測到 {active_websockets} 個活躍的WebSocket連接")
+                return True
+
+            debug_log("沒有檢測到任何活躍的WebSocket連接")
             return False
 
         except Exception as e:
@@ -1130,8 +1156,7 @@ async def launch_web_feedback_ui(
 
     # 如果檢測到活躍標籤頁但沒有開啟新視窗，立即發送會話更新通知
     if has_active_tabs:
-        await manager._send_immediate_session_update()
-        debug_log("已向活躍標籤頁發送會話更新通知")
+        debug_log("檢測到活躍標籤頁，跳過額外的會話更新通知（已在 smart_open_browser 中發送）")
 
     try:
         # 等待用戶回饋，傳遞 timeout 參數

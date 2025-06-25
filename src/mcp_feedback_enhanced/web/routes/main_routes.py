@@ -187,6 +187,7 @@ def setup_routes(manager: "WebUIManager"):
                 await websocket.send_json(
                     {
                         "type": "session_updated",
+                        "action": "new_session_created",
                         "message": "新會話已創建，正在更新頁面內容",
                         "session_info": {
                             "project_directory": session.project_directory,
