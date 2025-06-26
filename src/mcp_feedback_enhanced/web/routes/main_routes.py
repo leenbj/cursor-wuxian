@@ -175,7 +175,8 @@ def setup_routes(manager: "WebUIManager"):
                     "last_activity": int(session.last_activity * 1000),
                     "feedback_completed": session.feedback_completed.is_set(),
                     "has_websocket": session.websocket is not None,
-                    "is_current": session == manager.current_session
+                    "is_current": session == manager.current_session,
+                    "user_messages": session.user_messages  # 包含用戶消息記錄
                 }
                 sessions_data.append(session_info)
 
@@ -190,6 +191,32 @@ def setup_routes(manager: "WebUIManager"):
             return JSONResponse(
                 status_code=500,
                 content={"error": f"獲取會話狀態失敗: {e!s}"}
+            )
+
+    @manager.app.post("/api/add-user-message")
+    async def add_user_message(request: Request):
+        """添加用戶消息到當前會話"""
+        try:
+            data = await request.json()
+            current_session = manager.get_current_session()
+
+            if not current_session:
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "沒有活躍會話"}
+                )
+
+            # 添加用戶消息到會話
+            current_session.add_user_message(data)
+
+            debug_log(f"用戶消息已添加到會話 {current_session.session_id}")
+            return JSONResponse(content={"status": "success", "message": "用戶消息已記錄"})
+
+        except Exception as e:
+            debug_log(f"添加用戶消息失敗: {e}")
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"添加用戶消息失敗: {e!s}"}
             )
 
     @manager.app.websocket("/ws")

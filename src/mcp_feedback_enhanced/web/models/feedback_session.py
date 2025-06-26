@@ -131,6 +131,7 @@ class WebFeedbackSession:
         self.feedback_completed = threading.Event()
         self.process: subprocess.Popen | None = None
         self.command_logs: list[str] = []
+        self.user_messages: list[dict] = []  # 用戶消息記錄
         self._cleanup_done = False  # 防止重複清理
 
         # 新增：會話狀態管理
@@ -496,6 +497,22 @@ class WebFeedbackSession:
                 debug_log(f"發送反饋確認失敗: {e}")
 
         # 重構：不再自動關閉 WebSocket，保持連接以支援頁面持久性
+
+    def add_user_message(self, message_data: dict[str, Any]) -> None:
+        """添加用戶消息記錄"""
+        import time
+
+        # 創建用戶消息記錄
+        user_message = {
+            "timestamp": int(time.time() * 1000),  # 毫秒時間戳
+            "content": message_data.get("content", ""),
+            "images": message_data.get("images", []),
+            "submission_method": message_data.get("submission_method", "manual"),
+            "type": "feedback"
+        }
+
+        self.user_messages.append(user_message)
+        debug_log(f"會話 {self.session_id} 添加用戶消息，總數: {len(self.user_messages)}")
 
     def _process_images(self, images: list[dict]) -> list[dict]:
         """

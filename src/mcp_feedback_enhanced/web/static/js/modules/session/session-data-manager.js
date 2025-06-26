@@ -313,11 +313,37 @@
         // 記錄用戶最後互動時間
         this.currentSession.last_user_interaction = TimeUtils.getCurrentTimestamp();
 
+        // 發送用戶消息到服務器端
+        this.sendUserMessageToServer(userMessage);
+
         // 立即保存當前會話到伺服器
         this.saveCurrentSessionToServer();
 
         console.log('📊 用戶訊息已記錄到當前會話:', this.currentSession.session_id);
         return true;
+    };
+
+    /**
+     * 發送用戶消息到服務器端
+     */
+    SessionDataManager.prototype.sendUserMessageToServer = function(userMessage) {
+        fetch('/api/add-user-message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(userMessage)
+        })
+        .then(function(response) {
+            if (response.ok) {
+                console.log('📊 用戶消息已發送到服務器端');
+            } else {
+                console.warn('📊 發送用戶消息到服務器端失敗:', response.status);
+            }
+        })
+        .catch(function(error) {
+            console.warn('📊 發送用戶消息到服務器端出錯:', error);
+        });
     };
 
     /**
@@ -457,16 +483,24 @@
     };
 
     /**
-     * 根據 ID 查找會話
+     * 根據 ID 查找會話（包含完整的用戶消息數據）
      */
     SessionDataManager.prototype.findSessionById = function(sessionId) {
         // 先檢查當前會話
         if (this.currentSession && this.currentSession.session_id === sessionId) {
+            console.log('📊 從當前會話獲取數據:', sessionId, '用戶消息數量:', this.currentSession.user_messages ? this.currentSession.user_messages.length : 0);
             return this.currentSession;
         }
 
         // 再檢查歷史記錄
-        return this.sessionHistory.find(s => s.session_id === sessionId) || null;
+        const historySession = this.sessionHistory.find(s => s.session_id === sessionId);
+        if (historySession) {
+            console.log('📊 從歷史記錄獲取數據:', sessionId, '用戶消息數量:', historySession.user_messages ? historySession.user_messages.length : 0);
+            return historySession;
+        }
+
+        console.warn('📊 找不到會話:', sessionId);
+        return null;
     };
 
     /**
