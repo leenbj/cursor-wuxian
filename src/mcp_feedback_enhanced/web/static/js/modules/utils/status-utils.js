@@ -47,7 +47,7 @@
                 'waiting_for_feedback': 'connectionMonitor.waiting',
                 'active': 'status.processing.title',
                 'feedback_submitted': 'status.submitted.title',
-                'completed': 'status.submitted.title',
+                'completed': 'status.completed.title',
                 'timeout': 'session.timeout',
                 'error': 'status.error',
                 'expired': 'session.timeout',

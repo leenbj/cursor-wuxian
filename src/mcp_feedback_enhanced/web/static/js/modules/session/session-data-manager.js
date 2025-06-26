@@ -62,9 +62,13 @@
             if (this.currentSession && this.currentSession.session_id) {
                 console.log('📊 檢測到會話 ID 變更，處理舊會話:', this.currentSession.session_id, '->', sessionData.session_id);
 
-                // 將舊會話標記為完成並加入歷史記錄
+                // 將舊會話加入歷史記錄，保持其原有狀態
                 const oldSession = Object.assign({}, this.currentSession);
-                oldSession.status = 'completed';
+
+                // 完全保持舊會話的原有狀態，不做任何修改
+                // 讓服務器端負責狀態轉換，前端只負責顯示
+                console.log('📊 保持舊會話的原有狀態:', oldSession.status);
+
                 oldSession.completed_at = TimeUtils.getCurrentTimestamp();
 
                 // 計算持續時間
@@ -589,23 +593,25 @@
     };
 
     /**
-     * 從伺服器載入會話歷史
+     * 從伺服器載入會話歷史（包含實時狀態）
      */
     SessionDataManager.prototype.loadFromServer = function() {
         const self = this;
 
-        fetch('/api/load-session-history')
+        // 首先嘗試獲取實時會話狀態
+        fetch('/api/all-sessions')
             .then(function(response) {
                 if (response.ok) {
                     return response.json();
                 } else {
-                    throw new Error('伺服器回應錯誤: ' + response.status);
+                    throw new Error('獲取實時會話狀態失敗: ' + response.status);
                 }
             })
             .then(function(data) {
                 if (data && Array.isArray(data.sessions)) {
+                    // 使用實時會話狀態
                     self.sessionHistory = data.sessions;
-                    console.log('📊 從伺服器載入', self.sessionHistory.length, '個會話');
+                    console.log('📊 從伺服器載入', self.sessionHistory.length, '個實時會話狀態');
 
                     // 載入完成後進行清理和統計更新
                     self.cleanupExpiredSessions();
@@ -621,13 +627,53 @@
                         self.onDataChanged();
                     }
                 } else {
-                    console.warn('📊 伺服器回應格式錯誤:', data);
-                    self.sessionHistory = [];
+                    console.warn('📊 實時會話狀態回應格式錯誤，回退到歷史文件');
+                    self.loadFromHistoryFile();
+                }
+            })
+            .catch(function(error) {
+                console.warn('📊 獲取實時會話狀態失敗，回退到歷史文件:', error);
+                self.loadFromHistoryFile();
+            });
+    };
 
-                    // 即使沒有資料也要更新統計
+    /**
+     * 從歷史文件載入會話數據（備用方案）
+     */
+    SessionDataManager.prototype.loadFromHistoryFile = function() {
+        const self = this;
+
+        fetch('/api/load-session-history')
+            .then(function(response) {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('伺服器回應錯誤: ' + response.status);
+                }
+            })
+            .then(function(data) {
+                if (data && Array.isArray(data.sessions)) {
+                    self.sessionHistory = data.sessions;
+                    console.log('📊 從歷史文件載入', self.sessionHistory.length, '個會話');
+
+                    // 載入完成後進行清理和統計更新
+                    self.cleanupExpiredSessions();
                     self.updateStats();
 
-                    // 觸發歷史記錄變更回調（空列表）
+                    // 觸發歷史記錄變更回調
+                    if (self.onHistoryChange) {
+                        self.onHistoryChange(self.sessionHistory);
+                    }
+
+                    // 觸發資料變更回調
+                    if (self.onDataChanged) {
+                        self.onDataChanged();
+                    }
+                } else {
+                    console.warn('📊 歷史文件回應格式錯誤:', data);
+                    self.sessionHistory = [];
+                    self.updateStats();
+
                     if (self.onHistoryChange) {
                         self.onHistoryChange(self.sessionHistory);
                     }
@@ -638,13 +684,10 @@
                 }
             })
             .catch(function(error) {
-                console.warn('📊 從伺服器載入會話歷史失敗:', error);
+                console.warn('📊 從歷史文件載入失敗:', error);
                 self.sessionHistory = [];
-
-                // 載入失敗時也要更新統計
                 self.updateStats();
 
-                // 觸發歷史記錄變更回調（空列表）
                 if (self.onHistoryChange) {
                     self.onHistoryChange(self.sessionHistory);
                 }

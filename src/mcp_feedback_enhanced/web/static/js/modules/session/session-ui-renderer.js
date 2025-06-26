@@ -486,9 +486,18 @@
 
         // 狀態徽章
         const statusContainer = DOMUtils.createElement('div', { className: 'session-status' });
+        const statusText = StatusUtils.getStatusText(sessionData.status);
+
+        // 添加調試信息
+        console.log('🎨 會話狀態調試:', {
+            sessionId: sessionData.session_id ? sessionData.session_id.substring(0, 8) + '...' : 'unknown',
+            rawStatus: sessionData.status,
+            displayText: statusText
+        });
+
         const statusBadge = DOMUtils.createElement('span', {
             className: 'status-badge ' + (sessionData.status || 'waiting'),
-            textContent: StatusUtils.getStatusText(sessionData.status)
+            textContent: statusText
         });
 
         statusContainer.appendChild(statusBadge);

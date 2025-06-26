@@ -157,6 +157,41 @@ def setup_routes(manager: "WebUIManager"):
             }
         )
 
+    @manager.app.get("/api/all-sessions")
+    async def get_all_sessions():
+        """獲取所有會話的實時狀態"""
+        try:
+            sessions_data = []
+
+            # 獲取所有會話的實時狀態
+            for session_id, session in manager.sessions.items():
+                session_info = {
+                    "session_id": session.session_id,
+                    "project_directory": session.project_directory,
+                    "summary": session.summary,
+                    "status": session.status.value,
+                    "status_message": session.status_message,
+                    "created_at": int(session.created_at * 1000),  # 轉換為毫秒
+                    "last_activity": int(session.last_activity * 1000),
+                    "feedback_completed": session.feedback_completed.is_set(),
+                    "has_websocket": session.websocket is not None,
+                    "is_current": session == manager.current_session
+                }
+                sessions_data.append(session_info)
+
+            # 按創建時間排序（最新的在前）
+            sessions_data.sort(key=lambda x: x["created_at"], reverse=True)
+
+            debug_log(f"返回 {len(sessions_data)} 個會話的實時狀態")
+            return JSONResponse(content={"sessions": sessions_data})
+
+        except Exception as e:
+            debug_log(f"獲取所有會話狀態失敗: {e}")
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"獲取會話狀態失敗: {e!s}"}
+            )
+
     @manager.app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         """WebSocket 端點 - 重構後移除 session_id 依賴"""

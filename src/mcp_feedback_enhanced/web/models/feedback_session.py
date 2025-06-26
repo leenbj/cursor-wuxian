@@ -29,15 +29,13 @@ from ...utils.resource_manager import get_resource_manager, register_process
 
 
 class SessionStatus(Enum):
-    """會話狀態枚舉"""
+    """會話狀態枚舉 - 單向流轉設計"""
 
     WAITING = "waiting"  # 等待中
-    ACTIVE = "active"  # 活躍中
     FEEDBACK_SUBMITTED = "feedback_submitted"  # 已提交反饋
     COMPLETED = "completed"  # 已完成
-    TIMEOUT = "timeout"  # 超時
-    ERROR = "error"  # 錯誤
-    EXPIRED = "expired"  # 已過期
+    ERROR = "error"  # 錯誤（終態）
+    EXPIRED = "expired"  # 已過期（終態）
 
 
 class CleanupReason(Enum):
@@ -174,21 +172,79 @@ class WebFeedbackSession:
             f"會話 {self.session_id} 初始化完成，自動清理延遲: {auto_cleanup_delay}秒，最大空閒: {max_idle_time}秒"
         )
 
-    def update_status(self, status: SessionStatus, message: str | None = None):
-        """更新會話狀態"""
-        self.status = status
+    def next_step(self, message: str | None = None) -> bool:
+        """進入下一個狀態 - 單向流轉，不可倒退"""
+        old_status = self.status
+
+        # 定義狀態流轉路徑
+        next_status_map = {
+            SessionStatus.WAITING: SessionStatus.FEEDBACK_SUBMITTED,
+            SessionStatus.FEEDBACK_SUBMITTED: SessionStatus.COMPLETED,
+            SessionStatus.COMPLETED: None,  # 終態
+            SessionStatus.ERROR: None,      # 終態
+            SessionStatus.EXPIRED: None     # 終態
+        }
+
+        next_status = next_status_map.get(self.status)
+
+        if next_status is None:
+            debug_log(f"⚠️ 會話 {self.session_id} 已處於終態 {self.status.value}，無法進入下一步")
+            return False
+
+        # 執行狀態轉換
+        self.status = next_status
         if message:
             self.status_message = message
-        # 統一使用 time.time()
+        else:
+            # 默認消息
+            default_messages = {
+                SessionStatus.FEEDBACK_SUBMITTED: "用戶已提交反饋",
+                SessionStatus.COMPLETED: "會話已完成"
+            }
+            self.status_message = default_messages.get(next_status, "狀態已更新")
+
         self.last_activity = time.time()
 
-        # 如果會話變為活躍狀態，重置清理定時器
-        if status in [SessionStatus.ACTIVE, SessionStatus.FEEDBACK_SUBMITTED]:
+        # 如果會話變為已提交狀態，重置清理定時器
+        if next_status == SessionStatus.FEEDBACK_SUBMITTED:
             self._schedule_auto_cleanup()
 
         debug_log(
-            f"會話 {self.session_id} 狀態更新: {status.value} - {self.status_message}"
+            f"✅ 會話 {self.session_id} 狀態流轉: {old_status.value} → {next_status.value} - {self.status_message}"
         )
+        return True
+
+    def set_error(self, message: str = "會話發生錯誤") -> bool:
+        """設置錯誤狀態（特殊方法，可從任何狀態進入）"""
+        old_status = self.status
+        self.status = SessionStatus.ERROR
+        self.status_message = message
+        self.last_activity = time.time()
+
+        debug_log(
+            f"❌ 會話 {self.session_id} 設置為錯誤狀態: {old_status.value} → {self.status.value} - {message}"
+        )
+        return True
+
+    def set_expired(self, message: str = "會話已過期") -> bool:
+        """設置過期狀態（特殊方法，可從任何狀態進入）"""
+        old_status = self.status
+        self.status = SessionStatus.EXPIRED
+        self.status_message = message
+        self.last_activity = time.time()
+
+        debug_log(
+            f"⏰ 會話 {self.session_id} 設置為過期狀態: {old_status.value} → {self.status.value} - {message}"
+        )
+        return True
+
+    def can_proceed(self) -> bool:
+        """檢查是否可以進入下一步"""
+        return self.status in [SessionStatus.WAITING, SessionStatus.FEEDBACK_SUBMITTED]
+
+    def is_terminal(self) -> bool:
+        """檢查是否處於終態"""
+        return self.status in [SessionStatus.COMPLETED, SessionStatus.ERROR, SessionStatus.EXPIRED]
 
     def get_status_info(self) -> dict[str, Any]:
         """獲取會話狀態信息"""
@@ -404,10 +460,8 @@ class WebFeedbackSession:
         self.settings = settings or {}
         self.images = self._process_images(images)
 
-        # 更新狀態為已提交反饋
-        self.update_status(
-            SessionStatus.FEEDBACK_SUBMITTED, "已送出反饋，等待下次 MCP 調用"
-        )
+        # 進入下一步：等待中 → 已提交反饋
+        self.next_step("已送出反饋，等待下次 MCP 調用")
 
         self.feedback_completed.set()
 
