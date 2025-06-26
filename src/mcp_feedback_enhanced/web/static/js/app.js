@@ -647,7 +647,23 @@
         const submittedMessage = window.i18nManager ? window.i18nManager.t('feedback.submittedWaiting') : '已送出反饋，等待下次 MCP 調用...';
         this.updateSummaryStatus(submittedMessage);
 
+        // 刷新會話列表以顯示最新狀態
+        this.refreshSessionList();
+
         console.log('反饋已提交，頁面保持開啟狀態');
+    };
+
+    /**
+     * 刷新會話列表以顯示最新狀態
+     */
+    FeedbackApp.prototype.refreshSessionList = function() {
+        // 如果有會話管理器，觸發數據刷新
+        if (this.sessionManager && this.sessionManager.dataManager) {
+            console.log('🔄 刷新會話列表以顯示最新狀態');
+            this.sessionManager.dataManager.loadFromServer();
+        } else {
+            console.log('⚠️ 會話管理器未初始化，跳過會話列表刷新');
+        }
     };
 
     /**
@@ -863,6 +879,9 @@
             this.currentSessionId = sessionId;
             console.log('🔄 更新當前會話ID:', sessionId.substring(0, 8) + '...');
         }
+
+        // 刷新會話列表以顯示最新狀態
+        this.refreshSessionList();
 
         // 根據服務器狀態更新消息顯示（不修改前端狀態）
         switch (statusInfo.status) {
