@@ -698,10 +698,12 @@
      * 處理會話更新（原始版本，供防抖使用）
      */
     FeedbackApp.prototype._originalHandleSessionUpdated = function(data) {
-        console.log('🔄 處理會話更新:', data.session_info);
+        console.log('🔄 處理會話更新:', data);
+        console.log('🔍 檢查 action 字段:', data.action);
+        console.log('🔍 檢查 type 字段:', data.type);
 
         // 檢查是否是新會話創建的通知
-        if (data.action === 'new_session_created') {
+        if (data.action === 'new_session_created' || data.type === 'new_session_created') {
             console.log('🆕 檢測到新會話創建，完全刷新頁面以確保狀態同步');
 
             // 播放音效通知
@@ -711,14 +713,27 @@
 
             // 顯示新會話通知
             window.MCPFeedback.Utils.showMessage(
-                data.message || '新的 MCP 會話已創建，正在刷新頁面...',
+                data.message || '新的 MCP 會話已創建，正在打開新窗口...',
                 window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS
             );
 
-            // 延遲一小段時間讓用戶看到通知，然後完全刷新頁面
+            // 使用 window.open 打開新窗口並關閉當前窗口
             setTimeout(function() {
-                console.log('🔄 完全刷新頁面以顯示新會話內容');
-                window.location.reload();
+                console.log('🔄 使用 window.open 打開新窗口');
+
+                // 打開新窗口
+                const newWindow = window.open(window.location.href, '_blank');
+
+                if (newWindow) {
+                    console.log('✅ 新窗口打開成功，關閉當前窗口');
+                    // 短暫延遲後關閉當前窗口
+                    setTimeout(function() {
+                        window.close();
+                    }, 500);
+                } else {
+                    console.warn('❌ window.open 被阻止，回退到頁面刷新');
+                    window.location.reload();
+                }
             }, 1500);
 
             return; // 提前返回，不執行後續的局部更新邏輯
