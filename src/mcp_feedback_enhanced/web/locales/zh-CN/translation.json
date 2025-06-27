@@ -238,7 +238,10 @@
             "summary": "总结",
             "noSummary": "暂无总结",
             "unknown": "未知"
-        }
+        },
+        "copySessionContent": "复制会话内容",
+        "copyUserContent": "复制用户内容",
+        "exportSession": "导出此会话"
     },
     "sessionHistory": {
         "management": {

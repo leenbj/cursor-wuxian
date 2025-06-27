@@ -238,7 +238,10 @@
             "summary": "Summary",
             "noSummary": "No summary available",
             "unknown": "Unknown"
-        }
+        },
+        "copySessionContent": "Copy Session Content",
+        "copyUserContent": "Copy User Content",
+        "exportSession": "Export This Session"
     },
     "sessionHistory": {
         "management": {

@@ -227,6 +227,11 @@ class I18nManager {
                 const stats = window.feedbackApp.sessionManager.dataManager.getStats();
                 window.feedbackApp.sessionManager.uiRenderer.renderStats(stats);
                 console.log('🌐 已更新統計資訊的語言顯示');
+                
+                // 重新渲染會話歷史以更新所有動態創建的元素
+                const sessionHistory = window.feedbackApp.sessionManager.dataManager.getSessionHistory();
+                window.feedbackApp.sessionManager.uiRenderer.renderSessionHistory(sessionHistory);
+                console.log('🌐 已更新會話歷史的語言顯示');
             }
         }
 

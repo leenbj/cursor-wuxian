@@ -657,8 +657,18 @@
                             </div>
                             <div class="session-actions">
                                 <button class="btn-small" id="viewSessionDetails" data-i18n="sessionManagement.viewDetails">詳細資訊</button>
-                                <button class="btn-small btn-primary" id="copyCurrentSessionContent" title="复制当前会话内容">📋 复制会话内容</button>
-                                <button class="btn-small btn-secondary" id="copyCurrentUserContent" title="复制当前用户发送的内容">📝 复制用户内容</button>
+                                <button class="btn-small btn-primary" id="copyCurrentSessionContent"
+                                        data-i18n="sessionManagement.copySessionContent"
+                                        data-i18n-title="sessionManagement.copySessionContent"
+                                        aria-label="複製會話內容">
+                                    📋 <span data-i18n="sessionManagement.copySessionContent">複製會話內容</span>
+                                </button>
+                                <button class="btn-small btn-secondary" id="copyCurrentUserContent"
+                                        data-i18n="sessionManagement.copyUserContent"
+                                        data-i18n-title="sessionManagement.copyUserContent"
+                                        aria-label="複製用戶內容">
+                                    📝 <span data-i18n="sessionManagement.copyUserContent">複製用戶內容</span>
+                                </button>
                             </div>
                         </div>
                     </div>

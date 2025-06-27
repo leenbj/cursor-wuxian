@@ -20,6 +20,9 @@
         new window.MCPFeedback.Logger({ moduleName: 'SessionUIRenderer' }) :
         console;
     const StatusUtils = window.MCPFeedback.Utils.Status;
+    
+    // 調試模式標誌 - 生產環境應設為 false
+    const DEBUG_MODE = false;
 
     /**
      * 會話 UI 渲染器
@@ -80,31 +83,31 @@
      * 初始化專案路徑顯示
      */
     SessionUIRenderer.prototype.initializeProjectPathDisplay = function() {
-        console.log('🎨 初始化專案路徑顯示');
+        if (DEBUG_MODE) console.log('🎨 初始化專案路徑顯示');
 
         const projectPathElement = document.getElementById('projectPathDisplay');
-        console.log('🎨 初始化時找到專案路徑元素:', !!projectPathElement);
+        if (DEBUG_MODE) console.log('🎨 初始化時找到專案路徑元素:', !!projectPathElement);
 
         if (projectPathElement) {
             const fullPath = projectPathElement.getAttribute('data-full-path');
-            console.log('🎨 初始化時的完整路徑:', fullPath);
+            if (DEBUG_MODE) console.log('🎨 初始化時的完整路徑:', fullPath);
 
             if (fullPath) {
                 // 使用工具函數截斷路徑
                 const pathResult = window.MCPFeedback.Utils.truncatePathFromRight(fullPath, 2, 40);
-                console.log('🎨 初始化時路徑處理:', { fullPath, shortPath: pathResult.truncated });
+                if (DEBUG_MODE) console.log('🎨 初始化時路徑處理:', { fullPath, shortPath: pathResult.truncated });
 
                 // 更新顯示文字
                 DOMUtils.safeSetTextContent(projectPathElement, pathResult.truncated);
 
                 // 添加點擊複製功能
                 if (!projectPathElement.hasAttribute('data-copy-handler')) {
-                    console.log('🎨 初始化時添加點擊複製功能');
+                    if (DEBUG_MODE) console.log('🎨 初始化時添加點擊複製功能');
                     projectPathElement.setAttribute('data-copy-handler', 'true');
                     projectPathElement.addEventListener('click', function() {
-                        console.log('🎨 初始化的專案路徑被點擊');
+                        if (DEBUG_MODE) console.log('🎨 初始化的專案路徑被點擊');
                         const fullPath = this.getAttribute('data-full-path');
-                        console.log('🎨 初始化時準備複製路徑:', fullPath);
+                        if (DEBUG_MODE) console.log('🎨 初始化時準備複製路徑:', fullPath);
 
                         if (fullPath) {
                             const successMessage = window.i18nManager ?
@@ -114,12 +117,12 @@
                                 window.i18nManager.t('app.pathCopyFailed', '複製路徑失敗') :
                                 '複製路徑失敗';
 
-                            console.log('🎨 初始化時調用複製函數');
+                            if (DEBUG_MODE) console.log('🎨 初始化時調用複製函數');
                             window.MCPFeedback.Utils.copyToClipboard(fullPath, successMessage, errorMessage);
                         }
                     });
                 } else {
-                    console.log('🎨 初始化時點擊複製功能已存在');
+                    if (DEBUG_MODE) console.log('🎨 初始化時點擊複製功能已存在');
                 }
 
                 // 添加 tooltip 位置自動調整
@@ -168,7 +171,7 @@
      * 執行實際的當前會話渲染
      */
     SessionUIRenderer.prototype._performCurrentSessionRender = function(sessionData, isNewSession) {
-        console.log('🎨 渲染當前會話:', sessionData);
+        if (DEBUG_MODE) console.log('🎨 渲染當前會話:', sessionData);
 
         // 更新快取
         this.lastRenderedData.currentSessionId = sessionData.session_id;
@@ -176,7 +179,7 @@
 
         // 如果是新會話，重置活躍時間定時器
         if (isNewSession) {
-            console.log('🎨 檢測到新會話，重置活躍時間定時器');
+            if (DEBUG_MODE) console.log('🎨 檢測到新會話，重置活躍時間定時器');
             this.resetActiveTimeTimer();
         }
 
@@ -258,17 +261,17 @@
      * 更新頂部狀態列的專案路徑顯示
      */
     SessionUIRenderer.prototype.updateTopProjectPathDisplay = function(sessionData) {
-        console.log('🎨 updateProjectPathDisplay 被調用:', sessionData);
+        if (DEBUG_MODE) console.log('🎨 updateProjectPathDisplay 被調用:', sessionData);
 
         const projectPathElement = document.getElementById('projectPathDisplay');
-        console.log('🎨 找到專案路徑元素:', !!projectPathElement);
+        if (DEBUG_MODE) console.log('🎨 找到專案路徑元素:', !!projectPathElement);
 
         if (projectPathElement && sessionData.project_directory) {
             const fullPath = sessionData.project_directory;
 
             // 使用工具函數截斷路徑
             const pathResult = window.MCPFeedback.Utils.truncatePathFromRight(fullPath, 2, 40);
-            console.log('🎨 路徑處理:', { fullPath, shortPath: pathResult.truncated });
+            if (DEBUG_MODE) console.log('🎨 路徑處理:', { fullPath, shortPath: pathResult.truncated });
 
             // 更新顯示文字
             DOMUtils.safeSetTextContent(projectPathElement, pathResult.truncated);
@@ -278,12 +281,12 @@
 
             // 添加點擊複製功能（如果還沒有）
             if (!projectPathElement.hasAttribute('data-copy-handler')) {
-                console.log('🎨 添加點擊複製功能');
+                if (DEBUG_MODE) console.log('🎨 添加點擊複製功能');
                 projectPathElement.setAttribute('data-copy-handler', 'true');
                 projectPathElement.addEventListener('click', function() {
-                    console.log('🎨 專案路徑被點擊');
+                    if (DEBUG_MODE) console.log('🎨 專案路徑被點擊');
                     const fullPath = this.getAttribute('data-full-path');
-                    console.log('🎨 準備複製路徑:', fullPath);
+                    if (DEBUG_MODE) console.log('🎨 準備複製路徑:', fullPath);
 
                     if (fullPath) {
                         const successMessage = window.i18nManager ?
@@ -293,12 +296,12 @@
                             window.i18nManager.t('app.pathCopyFailed', '複製路徑失敗') :
                             '複製路徑失敗';
 
-                        console.log('🎨 調用複製函數');
+                        if (DEBUG_MODE) console.log('🎨 調用複製函數');
                         window.MCPFeedback.Utils.copyToClipboard(fullPath, successMessage, errorMessage);
                     }
                 });
             } else {
-                console.log('🎨 點擊複製功能已存在');
+                if (DEBUG_MODE) console.log('🎨 點擊複製功能已存在');
             }
 
             // 添加 tooltip 位置自動調整
@@ -352,7 +355,7 @@
     SessionUIRenderer.prototype.updateSessionStatusBar = function(sessionData) {
         if (!sessionData) return;
 
-        console.log('🎨 更新會話狀態列:', sessionData);
+        if (DEBUG_MODE) console.log('🎨 更新會話狀態列:', sessionData);
 
         // 更新當前會話 ID - 顯示縮短版本，完整ID存在data-full-id中
         const currentSessionElement = document.getElementById('currentSessionId');
@@ -413,7 +416,7 @@
      * 執行實際的會話歷史渲染
      */
     SessionUIRenderer.prototype._performHistoryRender = function(sessionHistory) {
-        console.log('🎨 渲染會話歷史:', sessionHistory.length, '個會話');
+        if (DEBUG_MODE) console.log('🎨 渲染會話歷史:', sessionHistory.length, '個會話');
 
         // 更新快取
         this.lastRenderedData.historyLength = sessionHistory.length;
@@ -477,23 +480,39 @@
     SessionUIRenderer.prototype.createSessionHeader = function(sessionData) {
         const header = DOMUtils.createElement('div', { className: 'session-header' });
 
-        // 會話 ID
-        const sessionIdLabel = window.i18nManager ? window.i18nManager.t('sessionManagement.sessionId') : '會話 ID';
-        const sessionId = DOMUtils.createElement('div', {
-            className: 'session-id',
-            textContent: sessionIdLabel + ': ' + (sessionData.session_id || '').substring(0, 8) + '...'
+        // 會話 ID 容器
+        const sessionIdContainer = DOMUtils.createElement('div', {
+            className: 'session-id'
         });
+
+        // 會話 ID 標籤
+        const sessionIdLabel = DOMUtils.createElement('span', {
+            attributes: {
+                'data-i18n': 'sessionManagement.sessionId'
+            },
+            textContent: window.i18nManager ? window.i18nManager.t('sessionManagement.sessionId') : '會話 ID'
+        });
+
+        // 會話 ID 值
+        const sessionIdValue = DOMUtils.createElement('span', {
+            textContent: ': ' + (sessionData.session_id || '').substring(0, 8) + '...'
+        });
+
+        sessionIdContainer.appendChild(sessionIdLabel);
+        sessionIdContainer.appendChild(sessionIdValue);
 
         // 狀態徽章
         const statusContainer = DOMUtils.createElement('div', { className: 'session-status' });
         const statusText = StatusUtils.getStatusText(sessionData.status);
 
         // 添加調試信息
-        console.log('🎨 會話狀態調試:', {
-            sessionId: sessionData.session_id ? sessionData.session_id.substring(0, 8) + '...' : 'unknown',
-            rawStatus: sessionData.status,
-            displayText: statusText
-        });
+        if (DEBUG_MODE) {
+            console.log('🎨 會話狀態調試:', {
+                sessionId: sessionData.session_id ? sessionData.session_id.substring(0, 8) + '...' : 'unknown',
+                rawStatus: sessionData.status,
+                displayText: statusText
+            });
+        }
 
         const statusBadge = DOMUtils.createElement('span', {
             className: 'status-badge ' + (sessionData.status || 'waiting'),
@@ -501,7 +520,7 @@
         });
 
         statusContainer.appendChild(statusBadge);
-        header.appendChild(sessionId);
+        header.appendChild(sessionIdContainer);
         header.appendChild(statusContainer);
 
         return header;
@@ -513,31 +532,57 @@
     SessionUIRenderer.prototype.createSessionInfo = function(sessionData, isHistory) {
         const info = DOMUtils.createElement('div', { className: 'session-info' });
 
-        // 時間資訊
+        // 時間資訊容器
+        const timeContainer = DOMUtils.createElement('div', {
+            className: 'session-time'
+        });
+
+        // 時間標籤
+        const timeLabelKey = isHistory ? 'sessionManagement.createdTime' : 'sessionManagement.createdTime';
+        const timeLabel = DOMUtils.createElement('span', {
+            attributes: {
+                'data-i18n': timeLabelKey
+            },
+            textContent: window.i18nManager ? window.i18nManager.t(timeLabelKey) : '建立時間'
+        });
+
+        // 時間值
         const timeText = sessionData.created_at ?
             TimeUtils.formatTimestamp(sessionData.created_at, { format: 'time' }) :
             '--:--:--';
-
-        const timeLabel = isHistory ?
-            (window.i18nManager ? window.i18nManager.t('sessionManagement.sessionDetails.duration') : '完成時間') :
-            (window.i18nManager ? window.i18nManager.t('sessionManagement.createdTime') : '建立時間');
-
-        const timeElement = DOMUtils.createElement('div', {
-            className: 'session-time',
-            textContent: timeLabel + ': ' + timeText
+        const timeValue = DOMUtils.createElement('span', {
+            textContent: ': ' + timeText
         });
 
-        info.appendChild(timeElement);
+        timeContainer.appendChild(timeLabel);
+        timeContainer.appendChild(timeValue);
+        info.appendChild(timeContainer);
 
         // 歷史會話顯示持續時間
         if (isHistory) {
             const duration = this.calculateDisplayDuration(sessionData);
-            const durationLabel = window.i18nManager ? window.i18nManager.t('sessionManagement.sessionDetails.duration') : '持續時間';
-            const durationElement = DOMUtils.createElement('div', {
-                className: 'session-duration',
-                textContent: durationLabel + ': ' + duration
+            
+            // 持續時間容器
+            const durationContainer = DOMUtils.createElement('div', {
+                className: 'session-duration'
             });
-            info.appendChild(durationElement);
+
+            // 持續時間標籤
+            const durationLabel = DOMUtils.createElement('span', {
+                attributes: {
+                    'data-i18n': 'sessionManagement.sessionDetails.duration'
+                },
+                textContent: window.i18nManager ? window.i18nManager.t('sessionManagement.sessionDetails.duration') : '持續時間'
+            });
+
+            // 持續時間值
+            const durationValue = DOMUtils.createElement('span', {
+                textContent: ': ' + duration
+            });
+
+            durationContainer.appendChild(durationLabel);
+            durationContainer.appendChild(durationValue);
+            info.appendChild(durationContainer);
         }
 
         return info;
@@ -564,13 +609,13 @@
     SessionUIRenderer.prototype.createSessionActions = function(sessionData, isHistory) {
         const actions = DOMUtils.createElement('div', { className: 'session-actions' });
 
-        const buttonText = isHistory ?
-            (window.i18nManager ? window.i18nManager.t('sessionManagement.viewDetails') : '查看') :
-            (window.i18nManager ? window.i18nManager.t('sessionManagement.viewDetails') : '詳細資訊');
-
+        // 查看詳情按鈕
         const viewButton = DOMUtils.createElement('button', {
             className: 'btn-small',
-            textContent: buttonText
+            attributes: {
+                'data-i18n': 'sessionManagement.viewDetails'
+            },
+            textContent: window.i18nManager ? window.i18nManager.t('sessionManagement.viewDetails') : '詳細資訊'
         });
 
         // 添加查看詳情點擊事件
@@ -586,7 +631,10 @@
         if (isHistory) {
             const exportButton = DOMUtils.createElement('button', {
                 className: 'btn-small btn-export',
-                textContent: window.i18nManager ? window.i18nManager.t('sessionHistory.management.exportSingle') : '匯出',
+                attributes: {
+                    'data-i18n': 'sessionHistory.management.exportSingle'
+                },
+                textContent: window.i18nManager ? window.i18nManager.t('sessionHistory.management.exportSingle') : '匯出此會話',
                 style: 'margin-left: 4px; font-size: 11px; padding: 2px 6px;'
             });
 
@@ -695,7 +743,7 @@
             self.updateActiveTime();
         }, 1000);
 
-        console.log('🎨 活躍時間定時器已啟動');
+        if (DEBUG_MODE) console.log('🎨 活躍時間定時器已啟動');
     };
 
     /**
@@ -705,7 +753,7 @@
         if (this.activeTimeTimer) {
             clearInterval(this.activeTimeTimer);
             this.activeTimeTimer = null;
-            console.log('🎨 活躍時間定時器已停止');
+            if (DEBUG_MODE) console.log('🎨 活躍時間定時器已停止');
         }
     };
 
@@ -758,12 +806,12 @@
             currentSessionId: null
         };
 
-        console.log('🎨 SessionUIRenderer 清理完成');
+        if (DEBUG_MODE) console.log('🎨 SessionUIRenderer 清理完成');
     };
 
     // 將 SessionUIRenderer 加入命名空間
     window.MCPFeedback.Session.UIRenderer = SessionUIRenderer;
 
-    console.log('✅ SessionUIRenderer 模組載入完成');
+    if (DEBUG_MODE) console.log('✅ SessionUIRenderer 模組載入完成');
 
 })();
