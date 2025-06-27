@@ -434,7 +434,10 @@
         "enabled": "Enabled",
         "disabled": "Disabled",
         "executing": "Executing auto submit...",
-        "countdownLabel": "Submit Countdown"
+        "countdownLabel": "Submit Countdown",
+        "pauseCountdown": "Pause Countdown",
+        "resumeCountdown": "Resume Countdown",
+        "paused": "Auto submit paused"
     },
     "audio": {
         "notification": {

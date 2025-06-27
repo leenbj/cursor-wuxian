@@ -435,7 +435,10 @@
         "enabled": "已啟用",
         "disabled": "已停用",
         "executing": "正在執行自動提交...",
-        "countdownLabel": "提交倒數"
+        "countdownLabel": "提交倒數",
+        "pauseCountdown": "暫停倒數",
+        "resumeCountdown": "恢復倒數",
+        "paused": "自動提交已暫停"
     },
     "audio": {
         "notification": {

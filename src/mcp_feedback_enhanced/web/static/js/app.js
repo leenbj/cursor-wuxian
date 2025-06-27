@@ -347,6 +347,17 @@
                 // ESC 鍵功能已移除 - 避免意外清空用戶輸入的文字
             });
 
+            // 倒數計時器暫停/恢復按鈕
+            const countdownPauseBtn = window.MCPFeedback.Utils.safeQuerySelector('#countdownPauseBtn');
+            if (countdownPauseBtn) {
+                countdownPauseBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (self.autoSubmitManager) {
+                        self.autoSubmitManager.togglePause();
+                    }
+                });
+            }
+
             // 設置設定管理器的事件監聽器
             self.settingsManager.setupEventListeners();
 
@@ -1500,6 +1511,35 @@
                     self.hideCountdownDisplay();
 
                     console.log('⏸️ 自動提交倒數計時已停止');
+                },
+
+                // 暫停倒數計時
+                pause: function() {
+                    if (this.countdown && this.countdown.pause) {
+                        this.countdown.pause();
+                        self.updateCountdownPauseState(true);
+                        console.log('⏸ 自動提交倒數計時已暫停');
+                    }
+                },
+
+                // 恢復倒數計時
+                resume: function() {
+                    if (this.countdown && this.countdown.resume) {
+                        this.countdown.resume();
+                        self.updateCountdownPauseState(false);
+                        console.log('▶ 自動提交倒數計時已恢復');
+                    }
+                },
+
+                // 切換暫停/恢復狀態
+                togglePause: function() {
+                    if (!this.countdown) return;
+                    
+                    if (this.countdown.isPaused()) {
+                        this.resume();
+                    } else {
+                        this.pause();
+                    }
                 }
             };
 
@@ -1732,6 +1772,8 @@
 
         if (countdownDisplay) {
             countdownDisplay.style.display = 'none';
+            // 重置暫停狀態
+            this.updateCountdownPauseState(false);
         }
     };
 
@@ -1787,6 +1829,44 @@
                 statusText.textContent = disabledText;
             }
             statusElement.className = 'auto-submit-status-btn disabled';
+        }
+    };
+
+    /**
+     * 更新倒數計時器暫停狀態
+     */
+    FeedbackApp.prototype.updateCountdownPauseState = function(isPaused) {
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const pauseBtn = document.getElementById('countdownPauseBtn');
+        
+        if (!countdownDisplay || !pauseBtn) return;
+        
+        // 更新暫停/恢復圖標
+        const pauseIcon = pauseBtn.querySelector('.pause-icon');
+        const resumeIcon = pauseBtn.querySelector('.resume-icon');
+        
+        if (isPaused) {
+            countdownDisplay.classList.add('paused');
+            if (pauseIcon) pauseIcon.style.display = 'none';
+            if (resumeIcon) resumeIcon.style.display = 'inline';
+            
+            // 更新按鈕的 tooltip
+            const resumeTitle = window.i18nManager ?
+                window.i18nManager.t('autoSubmit.resumeCountdown', '恢復倒數') :
+                '恢復倒數';
+            pauseBtn.setAttribute('title', resumeTitle);
+            pauseBtn.setAttribute('data-i18n-title', 'autoSubmit.resumeCountdown');
+        } else {
+            countdownDisplay.classList.remove('paused');
+            if (pauseIcon) pauseIcon.style.display = 'inline';
+            if (resumeIcon) resumeIcon.style.display = 'none';
+            
+            // 更新按鈕的 tooltip
+            const pauseTitle = window.i18nManager ?
+                window.i18nManager.t('autoSubmit.pauseCountdown', '暫停倒數') :
+                '暫停倒數';
+            pauseBtn.setAttribute('title', pauseTitle);
+            pauseBtn.setAttribute('data-i18n-title', 'autoSubmit.pauseCountdown');
         }
     };
 
