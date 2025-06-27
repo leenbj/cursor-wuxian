@@ -289,14 +289,23 @@
             if (this.maxFileSize > 0 && file.size > this.maxFileSize) {
                 const sizeLimit = this.formatFileSize(this.maxFileSize);
                 console.warn('⚠️ 檔案過大:', file.name, '超過限制', sizeLimit);
-                this.showMessage('圖片大小超過限制 (' + sizeLimit + '): ' + file.name, 'warning');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('fileUpload.fileSizeExceeded', {
+                        limit: sizeLimit,
+                        filename: file.name
+                    }) :
+                    '圖片大小超過限制 (' + sizeLimit + '): ' + file.name;
+                this.showMessage(message, 'warning');
                 continue;
             }
 
             // 檢查檔案數量限制
             if (this.files.length + validFiles.length >= this.maxFiles) {
                 console.warn('⚠️ 檔案數量超過限制:', this.maxFiles);
-                this.showMessage('最多只能上傳 ' + this.maxFiles + ' 個檔案', 'warning');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('fileUpload.maxFilesExceeded', { maxFiles: this.maxFiles }) :
+                    '最多只能上傳 ' + this.maxFiles + ' 個檔案';
+                this.showMessage(message, 'warning');
                 break;
             }
 
@@ -340,7 +349,10 @@
             })
             .catch(function(error) {
                 console.error('❌ 檔案處理失敗:', error);
-                self.showMessage('檔案處理失敗，請重試', 'error');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('fileUpload.processingFailed', '檔案處理失敗，請重試') :
+                    '檔案處理失敗，請重試';
+                self.showMessage(message, 'error');
             });
     };
 

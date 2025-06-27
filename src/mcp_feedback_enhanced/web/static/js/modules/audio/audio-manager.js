@@ -591,7 +591,7 @@
         // 可以在這裡添加 UI 通知邏輯
         if (window.MCPFeedback && window.MCPFeedback.Utils && window.MCPFeedback.Utils.showMessage) {
             const message = window.i18nManager ?
-                window.i18nManager.t('audio.autoplayBlocked', '瀏覽器阻止音效自動播放，請點擊頁面以啟用音效通知') :
+                window.i18nManager.t('notification.autoplayBlocked', '瀏覽器阻止音效自動播放，請點擊頁面以啟用音效通知') :
                 '瀏覽器阻止音效自動播放，請點擊頁面以啟用音效通知';
             window.MCPFeedback.Utils.showMessage(message, 'info');
         }

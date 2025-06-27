@@ -169,8 +169,12 @@
          * @returns {Promise<boolean>} 複製是否成功
          */
         copyToClipboard: function(text, successMessage, errorMessage) {
-            successMessage = successMessage || '已複製到剪貼板';
-            errorMessage = errorMessage || '複製失敗';
+            successMessage = successMessage || (window.i18nManager ? 
+                window.i18nManager.t('utils.copySuccess', '已複製到剪貼板') : 
+                '已複製到剪貼板');
+            errorMessage = errorMessage || (window.i18nManager ? 
+                window.i18nManager.t('utils.copyError', '複製失敗') : 
+                '複製失敗');
 
             return new Promise(function(resolve) {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -262,7 +266,115 @@
          * @param {string} type - 訊息類型 (success, error, warning, info)
          * @param {number} duration - 顯示時間（毫秒）
          */
-        showMessage: function(message, type, duration) {
+        showMessage: function(messageOrCode, type, duration) {
+            // 處理訊息代碼物件
+            let actualMessage = messageOrCode;
+            let actualType = type || 'info';
+            
+            if (typeof messageOrCode === 'object' && messageOrCode.code) {
+                // 使用 i18n 系統翻譯訊息代碼
+                if (window.i18nManager) {
+                    actualMessage = window.i18nManager.t(messageOrCode.code, messageOrCode.params);
+                } else {
+                    // 改善 fallback 機制：提供基本的英文訊息
+                    actualMessage = this.getFallbackMessage(messageOrCode.code, messageOrCode.params);
+                }
+                // 使用訊息物件中的嚴重程度
+                actualType = messageOrCode.severity || type || 'info';
+            }
+            
+            // 呼叫內部顯示方法
+            return this._displayMessage(actualMessage, actualType, duration);
+        },
+        
+        /**
+         * 獲取 fallback 訊息
+         * 當 i18n 系統尚未載入時使用
+         * @param {string} code - 訊息代碼
+         * @param {Object} params - 參數
+         * @returns {string} fallback 訊息
+         */
+        getFallbackMessage: function(code, params) {
+            // 基本的 fallback 訊息對照表
+            const fallbackMessages = {
+                // 系統相關
+                'system.connectionEstablished': 'WebSocket connection established',
+                'system.connectionLost': 'WebSocket connection lost',
+                'system.connectionReconnecting': 'Reconnecting...',
+                'system.connectionReconnected': 'Reconnected',
+                'system.connectionFailed': 'Connection failed',
+                'system.websocketError': 'WebSocket error',
+                'system.websocketReady': 'WebSocket ready',
+                'system.memoryPressure': 'Memory pressure cleanup',
+                'system.shutdown': 'System shutdown',
+                'system.processKilled': 'Process killed',
+                'system.heartbeatStopped': 'Heartbeat stopped',
+                
+                // 會話相關
+                'session.noActiveSession': 'No active session',
+                'session.created': 'New session created',
+                'session.updated': 'Session updated',
+                'session.expired': 'Session expired',
+                'session.timeout': 'Session timed out',
+                'session.cleaned': 'Session cleaned',
+                'session.feedbackSubmitted': 'Feedback submitted successfully',
+                'session.userMessageRecorded': 'User message recorded',
+                'session.historySaved': 'Session history saved',
+                'session.historyLoaded': 'Session history loaded',
+                
+                // 設定相關
+                'settings.saved': 'Settings saved',
+                'settings.loaded': 'Settings loaded',
+                'settings.cleared': 'Settings cleared',
+                'settings.saveFailed': 'Save failed',
+                'settings.loadFailed': 'Load failed',
+                'settings.clearFailed': 'Clear failed',
+                'settings.setFailed': 'Set failed',
+                'settings.logLevelUpdated': 'Log level updated',
+                'settings.invalidLogLevel': 'Invalid log level',
+                
+                // 錯誤相關
+                'error.generic': 'An error occurred',
+                'error.userMessageFailed': 'Failed to add user message',
+                'error.getSessionsFailed': 'Failed to get sessions',
+                'error.getLogLevelFailed': 'Failed to get log level',
+                'error.command': 'Command execution error',
+                'error.resourceCleanup': 'Resource cleanup error',
+                'error.processing': 'Processing error',
+                
+                // 通知相關
+                'notification.autoplayBlocked': 'Browser blocked autoplay, click page to enable sound',
+                
+                // 預設訊息
+                'default': 'System message'
+            };
+            
+            // 嘗試獲取對應的 fallback 訊息
+            let message = fallbackMessages[code] || fallbackMessages['default'];
+            
+            // 處理參數替換（簡單版本）
+            if (params && typeof params === 'object') {
+                for (const key in params) {
+                    if (params.hasOwnProperty(key)) {
+                        const placeholder = '{{' + key + '}}';
+                        message = message.replace(placeholder, params[key]);
+                    }
+                }
+            }
+            
+            // 在開發模式下顯示警告
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.warn('[i18n] Fallback message used for:', code, '→', message);
+            }
+            
+            return message;
+        },
+        
+        /**
+         * 內部方法：實際顯示訊息
+         * @private
+         */
+        _displayMessage: function(message, type, duration) {
             type = type || 'info';
             duration = duration || 3000;
 

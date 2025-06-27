@@ -494,7 +494,9 @@
                 feedbackInput.value = '';
                 console.log('📝 已清空文字內容');
             }
-            feedbackInput.disabled = false;
+            // 只有在等待狀態才啟用輸入框
+            const canInput = this.feedbackState === Utils.CONSTANTS.FEEDBACK_WAITING;
+            feedbackInput.disabled = !canInput;
         }
 
         // 重新啟用提交按鈕

@@ -55,7 +55,8 @@
         "sendFailed": "發送失敗，請重試",
         "noContent": "沒有可複製的內容",
         "copySuccess": "內容已複製到剪貼板",
-        "copyFailed": "複製失敗"
+        "copyFailed": "複製失敗",
+        "provideTextOrImage": "請提供回饋文字或上傳圖片"
     },
     "summary": {
         "title": "📋 AI 工作摘要",
@@ -101,7 +102,7 @@
         "summaryTitle": "📋 AI 工作摘要",
         "feedbackTitle": "💬 提供回饋"
     },
-    "settings": {
+    "settingsUI": {
         "title": "⚙️ 設定",
         "language": "🌍 語言",
         "currentLanguage": "當前語言",
@@ -126,7 +127,8 @@
         "resetError": "重置設定時發生錯誤",
         "timeout": "連線逾時 (秒)",
         "autorefresh": "自動重新整理",
-        "debug": "除錯模式"
+        "debug": "除錯模式",
+        "autoCommitNoPrompt": "請先選擇一個提示詞作為自動提交內容"
     },
     "languages": {
         "zh-TW": "繁體中文",
@@ -200,7 +202,7 @@
         "upload": "上傳",
         "download": "下載"
     },
-    "session": {
+    "sessionTimeout": {
         "timeout": "⏰ 會話已超時，介面將自動關閉",
         "timeoutWarning": "會話即將超時",
         "timeoutDescription": "由於長時間無回應，會話已超時。介面將在 3 秒後自動關閉。",
@@ -266,7 +268,10 @@
             "clearSuccess": "會話歷史已清空",
             "clearTitle": "清空所有會話歷史記錄",
             "description": "管理本地儲存的會話歷史記錄，包括保存期限設定和資料匯出功能",
-            "exportDescription": "匯出或清空本地儲存的會話歷史記錄"
+            "exportDescription": "匯出或清空本地儲存的會話歷史記錄",
+            "exportFailed": "匯出失敗: {error}",
+            "clearFailed": "清空失敗: {error}",
+            "clearFailedGeneric": "清空失敗"
         },
         "retention": {
             "24hours": "24 小時",
@@ -301,6 +306,14 @@
             "clearAllTitle": "清空所有會話的用戶訊息記錄",
             "confirmClearAll": "確定要清空所有會話的用戶訊息記錄嗎？此操作無法復原。",
             "clearSuccess": "用戶訊息記錄已清空"
+        },
+        "noActiveSession": "目前沒有活躍的會話數據",
+        "sessionNotFound": "找不到會話資料",
+        "currentSession": {
+            "noData": "沒有當前會話數據",
+            "noUserMessages": "當前會話沒有用戶消息記錄",
+            "copyFailed": "複製失敗，請重試",
+            "dataManagerNotInit": "數據管理器未初始化"
         }
     },
     "connectionMonitor": {
@@ -518,5 +531,95 @@
             "permissionRequired": "請先授權通知權限",
             "criticalTitle": "MCP Feedback - 警告"
         }
+    },
+    "system": {
+        "connectionEstablished": "WebSocket 連接已建立",
+        "connectionLost": "WebSocket 連接已斷開",
+        "connectionReconnecting": "正在重新連接...",
+        "connectionReconnected": "已重新連接",
+        "connectionFailed": "連接失敗",
+        "websocketError": "WebSocket 錯誤",
+        "memoryPressure": "記憶體壓力清理",
+        "shutdown": "系統關閉",
+        "processKilled": "進程已終止",
+        "heartbeatStopped": "心跳已停止",
+        "websocketReady": "WebSocket 已就緒"
+    },
+    "session": {
+        "noActiveSession": "沒有活躍會話",
+        "created": "新的 MCP 會話已創建，頁面將自動刷新",
+        "updated": "會話已更新",
+        "expired": "會話已過期",
+        "timeout": "會話已超時",
+        "cleaned": "會話已清理",
+        "feedbackSubmitted": "反饋已成功提交",
+        "userMessageRecorded": "用戶消息已記錄",
+        "historySaved": "會話歷史已保存（{{count}} 個會話）",
+        "historyLoaded": "會話歷史已載入"
+    },
+    "settingsAPI": {
+        "saved": "設定已保存",
+        "loaded": "設定已載入",
+        "cleared": "設定已清除",
+        "saveFailed": "保存失敗",
+        "loadFailed": "載入失敗",
+        "clearFailed": "清除失敗",
+        "setFailed": "設定失敗",
+        "invalidValue": "無效的設定值",
+        "logLevelUpdated": "日誌等級已更新",
+        "invalidLogLevel": "無效的日誌等級，必須是 DEBUG, INFO, WARN, ERROR 之一"
+    },
+    "file": {
+        "uploadSuccess": "檔案上傳成功",
+        "uploadFailed": "檔案上傳失敗",
+        "sizeTooLarge": "檔案大小超過限制",
+        "typeNotSupported": "不支援的檔案類型",
+        "processing": "正在處理檔案...",
+        "removed": "檔案已移除"
+    },
+    "prompt": {
+        "saved": "提示詞已保存",
+        "deleted": "提示詞已刪除",
+        "applied": "已套用提示詞：{{name}}",
+        "importSuccess": "提示詞匯入成功",
+        "importFailed": "提示詞匯入失敗",
+        "exportSuccess": "提示詞匯出成功",
+        "validationFailed": "提示詞驗證失敗"
+    },
+    "error": {
+        "generic": "發生錯誤：{{error}}",
+        "network": "網絡錯誤",
+        "server": "伺服器錯誤",
+        "timeout": "操作超時",
+        "invalidInput": "輸入無效",
+        "operationFailed": "操作失敗",
+        "userMessageFailed": "添加用戶消息失敗",
+        "getSessionsFailed": "獲取會話列表失敗",
+        "getLogLevelFailed": "獲取日誌等級失敗",
+        "command": "命令執行錯誤",
+        "resourceCleanup": "資源清理錯誤",
+        "processing": "處理過程錯誤"
+    },
+    "commandStatus": {
+        "executing": "正在執行命令...",
+        "completed": "命令執行完成",
+        "failed": "命令執行失敗",
+        "outputReceived": "已接收輸出",
+        "invalid": "無效的命令",
+        "error": "命令執行錯誤"
+    },
+    "utils": {
+        "copySuccess": "已複製到剪貼板",
+        "copyError": "複製失敗"
+    },
+    "fileUpload": {
+        "fileSizeExceeded": "圖片大小超過限制 ({limit}): {filename}",
+        "maxFilesExceeded": "最多只能上傳 {maxFiles} 個檔案",
+        "processingFailed": "檔案處理失敗，請重試"
+    },
+    "aria": {
+        "toggleAutoSubmit": "切換自動提交",
+        "toggleNotification": "切換通知",
+        "toggleAudioNotification": "切換音效通知"
     }
 }

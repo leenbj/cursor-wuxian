@@ -23,7 +23,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from ..debug import web_debug_log as debug_log
-from ..i18n import get_i18n_manager
 from ..utils.error_handler import ErrorHandler, ErrorType
 from ..utils.memory_monitor import get_memory_monitor
 from .models import CleanupReason, SessionStatus, WebFeedbackSession
@@ -137,7 +136,7 @@ class WebUIManager:
     def _init_basic_components(self):
         """同步初始化基本組件"""
         # 基本組件初始化（必須同步）
-        self.i18n = get_i18n_manager()
+        # 移除 i18n 管理器，因為翻譯已移至前端
 
         # 設置靜態文件和模板（必須同步）
         self._setup_static_files()
@@ -181,9 +180,8 @@ class WebUIManager:
 
         def preload_i18n():
             try:
-                # 觸發翻譯載入（如果尚未載入）
-                self.i18n.get_supported_languages()
-                debug_log("I18N 資源預載入完成")
+                # I18N 在前端處理，這裡只記錄預載入完成
+                debug_log("I18N 資源預載入完成（前端處理）")
                 return True
             except Exception as e:
                 debug_log(f"I18N 資源預載入失敗: {e}")
@@ -733,7 +731,7 @@ class WebUIManager:
             refresh_message = {
                 "type": "session_updated",
                 "action": "new_session_created",
-                "message": "新的 MCP 會話已創建，頁面將自動刷新",
+                "messageCode": "session.created",
                 "session_info": {
                     "session_id": self.current_session.session_id,
                     "project_directory": self.current_session.project_directory,

@@ -74,7 +74,10 @@
                 this.websocket = null;
             }
 
-            this.websocket = new WebSocket(wsUrl);
+            // 添加語言參數到 WebSocket URL
+            const language = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+            const wsUrlWithLang = wsUrl + (wsUrl.includes('?') ? '&' : '?') + 'lang=' + language;
+            this.websocket = new WebSocket(wsUrlWithLang);
             this.setupWebSocketEvents();
 
         } catch (error) {
@@ -261,6 +264,11 @@
                 console.log('WebSocket 連接確認');
                 this.connectionReady = true;
                 this.handleConnectionReady();
+                // 處理訊息代碼
+                if (data.messageCode && window.i18nManager) {
+                    const message = window.i18nManager.t(data.messageCode);
+                    Utils.showMessage(message, Utils.CONSTANTS.MESSAGE_SUCCESS);
+                }
                 break;
             case 'heartbeat_response':
                 this.handleHeartbeatResponse();

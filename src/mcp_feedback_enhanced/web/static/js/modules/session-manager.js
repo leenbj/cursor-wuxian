@@ -370,7 +370,10 @@
         const currentSession = this.dataManager.getCurrentSession();
 
         if (!currentSession) {
-            this.showMessage('目前沒有活躍的會話數據', 'warning');
+            const message = window.i18nManager ? 
+                window.i18nManager.t('sessionHistory.noActiveSession', '目前沒有活躍的會話數據') : 
+                '目前沒有活躍的會話數據';
+            this.showMessage(message, 'warning');
             return;
         }
 
@@ -390,7 +393,10 @@
         if (sessionData) {
             this.detailsModal.showSessionDetails(sessionData);
         } else {
-            this.showMessage('找不到會話資料', 'error');
+            const message = window.i18nManager ? 
+                window.i18nManager.t('sessionHistory.sessionNotFound', '找不到會話資料') : 
+                '找不到會話資料';
+            this.showMessage(message, 'error');
         }
     };
 
@@ -595,7 +601,10 @@
         } catch (error) {
             console.error('📋 匯出會話歷史失敗:', error);
             if (window.MCPFeedback && window.MCPFeedback.Utils && window.MCPFeedback.Utils.showMessage) {
-                window.MCPFeedback.Utils.showMessage('匯出失敗: ' + error.message, 'error');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.management.exportFailed', { error: error.message }) :
+                    '匯出失敗: ' + error.message;
+                window.MCPFeedback.Utils.showMessage(message, 'error');
             }
         }
     };
@@ -623,7 +632,10 @@
         } catch (error) {
             console.error('📋 匯出單一會話失敗:', error);
             if (window.MCPFeedback && window.MCPFeedback.Utils && window.MCPFeedback.Utils.showMessage) {
-                window.MCPFeedback.Utils.showMessage('匯出失敗: ' + error.message, 'error');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.management.exportFailed', { error: error.message }) :
+                    '匯出失敗: ' + error.message;
+                window.MCPFeedback.Utils.showMessage(message, 'error');
             }
         }
     };
@@ -659,7 +671,10 @@
         } catch (error) {
             console.error('📋 清空會話歷史失敗:', error);
             if (window.MCPFeedback && window.MCPFeedback.Utils && window.MCPFeedback.Utils.showMessage) {
-                window.MCPFeedback.Utils.showMessage('清空失敗: ' + error.message, 'error');
+                const errorMessage = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.management.clearFailed', { error: error.message }) :
+                    '清空失敗: ' + error.message;
+                window.MCPFeedback.Utils.showMessage(errorMessage, 'error');
             }
         }
     };
@@ -690,11 +705,17 @@
                     '用戶訊息記錄已清空';
                 this.showMessage(successMessage, 'success');
             } else {
-                this.showMessage('清空失敗', 'error');
+                const errorMessage = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.management.clearFailedGeneric', '清空失敗') :
+                    '清空失敗';
+                this.showMessage(errorMessage, 'error');
             }
         } catch (error) {
             console.error('📋 清空用戶訊息記錄失敗:', error);
-            this.showMessage('清空失敗: ' + error.message, 'error');
+            const errorMessage = window.i18nManager ?
+                window.i18nManager.t('sessionHistory.management.clearFailed', { error: error.message }) :
+                '清空失敗: ' + error.message;
+            this.showMessage(errorMessage, 'error');
         }
     };
 
@@ -752,15 +773,24 @@
         try {
             const currentSession = this.dataManager.getCurrentSession();
             if (!currentSession) {
-                this.showMessage('没有当前会话数据', 'error');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.currentSession.noData', '沒有當前會話數據') :
+                    '沒有當前會話數據';
+                this.showMessage(message, 'error');
                 return;
             }
 
             const content = this.formatCurrentSessionContent(currentSession);
-            this.copyToClipboard(content, '当前会话内容已复制到剪贴板');
+            const successMessage = window.i18nManager ?
+                window.i18nManager.t('sessionHistory.currentSession.copySuccess', '當前會話內容已複製到剪貼板') :
+                '當前會話內容已複製到剪貼板';
+            this.copyToClipboard(content, successMessage);
         } catch (error) {
             console.error('复制当前会话内容失败:', error);
-            this.showMessage('复制失败，请重试', 'error');
+            const message = window.i18nManager ?
+                window.i18nManager.t('sessionHistory.currentSession.copyFailed', '複製失敗，請重試') :
+                '複製失敗，請重試';
+            this.showMessage(message, 'error');
         }
     };
 
@@ -774,7 +804,10 @@
         try {
             if (!this.dataManager) {
                 console.log('📝 dataManager 不存在，尝试其他方式获取数据');
-                this.showMessage('数据管理器未初始化', 'error');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.currentSession.dataManagerNotInit', '數據管理器未初始化') :
+                    '數據管理器未初始化';
+                this.showMessage(message, 'error');
                 return;
             }
 
@@ -783,7 +816,10 @@
 
             if (!currentSession) {
                 console.log('📝 没有当前会话数据');
-                this.showMessage('当前会话没有数据', 'warning');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.currentSession.noData', '當前會話沒有數據') :
+                    '當前會話沒有數據';
+                this.showMessage(message, 'warning');
                 return;
             }
 
@@ -792,7 +828,10 @@
 
             if (!currentSession.user_messages || currentSession.user_messages.length === 0) {
                 console.log('📝 没有用户消息记录');
-                this.showMessage('当前会话没有用户消息记录', 'warning');
+                const message = window.i18nManager ?
+                    window.i18nManager.t('sessionHistory.currentSession.noUserMessages', '當前會話沒有用戶消息記錄') :
+                    '當前會話沒有用戶消息記錄';
+                this.showMessage(message, 'warning');
                 return;
             }
 
@@ -804,11 +843,17 @@
             console.log('📝 格式化后的内容长度:', content.length);
             console.log('📝 格式化后的内容预览:', content.substring(0, 200));
 
-            this.copyToClipboard(content, '当前用户内容已复制到剪贴板');
+            const successMessage = window.i18nManager ?
+                window.i18nManager.t('sessionHistory.currentSession.userContentCopySuccess', '當前用戶內容已複製到剪貼板') :
+                '當前用戶內容已複製到剪貼板';
+            this.copyToClipboard(content, successMessage);
         } catch (error) {
             console.error('📝 复制当前用户内容失败:', error);
             console.error('📝 错误堆栈:', error.stack);
-            this.showMessage('复制失败，请重试', 'error');
+            const message = window.i18nManager ?
+                window.i18nManager.t('sessionHistory.currentSession.copyFailed', '複製失敗，請重試') :
+                '複製失敗，請重試';
+            this.showMessage(message, 'error');
         }
     };
 
@@ -959,7 +1004,10 @@
             this.showMessage(successMessage, 'success');
         } catch (err) {
             console.error('降级复制失败:', err);
-            this.showMessage('复制失败，请手动复制', 'error');
+            const message = window.i18nManager ?
+                window.i18nManager.t('sessionHistory.currentSession.copyFailedManual', '複製失敗，請手動複製') :
+                '複製失敗，請手動複製';
+            this.showMessage(message, 'error');
         } finally {
             document.body.removeChild(textArea);
         }

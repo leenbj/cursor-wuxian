@@ -327,7 +327,8 @@
      * 發送用戶消息到服務器端
      */
     SessionDataManager.prototype.sendUserMessageToServer = function(userMessage) {
-        fetch('/api/add-user-message', {
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/add-user-message?lang=' + lang, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -633,7 +634,8 @@
         const self = this;
 
         // 首先嘗試獲取實時會話狀態
-        fetch('/api/all-sessions')
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/all-sessions?lang=' + lang)
             .then(function(response) {
                 if (response.ok) {
                     return response.json();
@@ -677,7 +679,8 @@
     SessionDataManager.prototype.loadFromHistoryFile = function() {
         const self = this;
 
-        fetch('/api/load-session-history')
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/load-session-history?lang=' + lang)
             .then(function(response) {
                 if (response.ok) {
                     return response.json();
@@ -775,7 +778,8 @@
             lastCleanup: TimeUtils.getCurrentTimestamp()
         };
 
-        fetch('/api/save-session-history', {
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/save-session-history?lang=' + lang, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -791,7 +795,12 @@
             }
         })
         .then(function(result) {
-            console.log('📊 會話快照保存回應:', result.message);
+            if (result.messageCode && window.i18nManager) {
+                const message = window.i18nManager.t(result.messageCode, result.params);
+                console.log('📊 會話快照保存回應:', message);
+            } else {
+                console.log('📊 會話快照保存回應:', result.message);
+            }
         })
         .catch(function(error) {
             console.error('📊 保存會話快照到伺服器失敗:', error);
@@ -807,7 +816,8 @@
             lastCleanup: TimeUtils.getCurrentTimestamp()
         };
 
-        fetch('/api/save-session-history', {
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/save-session-history?lang=' + lang, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -823,7 +833,12 @@
             }
         })
         .then(function(result) {
-            console.log('📊 伺服器保存回應:', result.message);
+            if (result.messageCode && window.i18nManager) {
+                const message = window.i18nManager.t(result.messageCode, result.params);
+                console.log('📊 伺服器保存回應:', message);
+            } else {
+                console.log('📊 伺服器保存回應:', result.message);
+            }
         })
         .catch(function(error) {
             console.error('📊 保存會話歷史到伺服器失敗:', error);

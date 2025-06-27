@@ -55,6 +55,11 @@
         this.setupEventListeners();
         this.updateUI();
 
+        // 應用翻譯到動態生成的內容
+        if (window.i18nManager) {
+            window.i18nManager.applyTranslations();
+        }
+
         console.log('✅ NotificationSettings 初始化完成');
     };
 
@@ -66,17 +71,15 @@
             <!-- 啟用開關 -->
             <div class="setting-item">
                 <div class="setting-info">
-                    <div class="setting-label" data-i18n="notification.settingLabel">瀏覽器通知</div>
-                    <div class="setting-description" data-i18n="notification.description">
-                        新會話建立時通知（僅在背景執行時）
-                    </div>
+                    <div class="setting-label" data-i18n="notification.settingLabel"></div>
+                    <div class="setting-description" data-i18n="notification.description"></div>
                     <!-- 權限狀態 -->
                     <div id="permissionStatus" class="permission-status">
                         <!-- 動態更新 -->
                     </div>
                 </div>
                 <div class="setting-control">
-                    <button type="button" id="notificationToggle" class="toggle-btn" aria-label="切換通知">
+                    <button type="button" id="notificationToggle" class="toggle-btn" data-i18n-aria-label="aria.toggleNotification">
                         <span class="toggle-slider"></span>
                     </button>
                 </div>
@@ -85,25 +88,25 @@
             <!-- 通知觸發情境 -->
             <div class="setting-item notification-trigger" style="display: none;">
                 <div class="setting-info">
-                    <div class="setting-label" data-i18n="notification.triggerTitle">通知觸發情境</div>
-                    <div class="setting-description" data-i18n="notification.triggerDescription">選擇何時接收通知</div>
+                    <div class="setting-label" data-i18n="notification.triggerTitle"></div>
+                    <div class="setting-description" data-i18n="notification.triggerDescription"></div>
                 </div>
                 <div class="trigger-options">
                     <label class="radio-option">
                         <input type="radio" name="notificationTrigger" value="focusLost" checked>
-                        <span data-i18n="notification.trigger.focusLost">視窗失去焦點時（切換到其他應用程式）</span>
+                        <span data-i18n="notification.trigger.focusLost"></span>
                     </label>
                     <label class="radio-option">
                         <input type="radio" name="notificationTrigger" value="tabSwitch">
-                        <span data-i18n="notification.trigger.tabSwitch">切換到其他標籤頁時</span>
+                        <span data-i18n="notification.trigger.tabSwitch"></span>
                     </label>
                     <label class="radio-option">
                         <input type="radio" name="notificationTrigger" value="background">
-                        <span data-i18n="notification.trigger.background">視窗最小化或隱藏時</span>
+                        <span data-i18n="notification.trigger.background"></span>
                     </label>
                     <label class="radio-option">
                         <input type="radio" name="notificationTrigger" value="always">
-                        <span data-i18n="notification.trigger.always">總是通知（包括前景）</span>
+                        <span data-i18n="notification.trigger.always"></span>
                     </label>
                 </div>
             </div>
@@ -111,12 +114,12 @@
             <!-- 測試按鈕 -->
             <div class="setting-item notification-actions" style="display: none;">
                 <div class="setting-info">
-                    <div class="setting-label" data-i18n="notification.testTitle">測試通知</div>
-                    <div class="setting-description" data-i18n="notification.testDescription">發送測試通知以確認功能正常</div>
+                    <div class="setting-label" data-i18n="notification.testTitle"></div>
+                    <div class="setting-description" data-i18n="notification.testDescription"></div>
                 </div>
                 <div class="setting-control">
                     <button type="button" id="testNotification" class="btn-primary">
-                        <span data-i18n="notification.test">發送測試通知</span>
+                        <span data-i18n="notification.test"></span>
                     </button>
                 </div>
             </div>
@@ -261,7 +264,7 @@
         const settings = this.notificationManager.getSettings();
         
         if (!settings.browserSupported) {
-            this.statusDiv.innerHTML = `<span data-i18n="notification.notSupported">⚠️ 您的瀏覽器不支援通知功能</span>`;
+            this.statusDiv.innerHTML = `<span data-i18n="notification.notSupported"></span>`;
             this.statusDiv.className = 'permission-status status-unsupported';
             this.toggle.disabled = true;
             return;

@@ -26,6 +26,7 @@ from fastapi import WebSocket
 from ...debug import web_debug_log as debug_log
 from ...utils.error_handler import ErrorHandler, ErrorType
 from ...utils.resource_manager import get_resource_manager, register_process
+from ..constants import get_message_code
 
 
 class SessionStatus(Enum):
@@ -62,6 +63,9 @@ SUPPORTED_IMAGE_TYPES = {
     "image/webp",
 }
 TEMP_DIR = Path.home() / ".cache" / "interactive-feedback-mcp-web"
+
+# 訊息代碼現在從統一的常量文件導入
+# 使用 get_message_code 函數來獲取訊息代碼
 
 
 def _safe_parse_command(command: str) -> list[str]:
@@ -135,6 +139,7 @@ class WebFeedbackSession:
         self.command_logs: list[str] = []
         self.user_messages: list[dict] = []  # 用戶消息記錄
         self._cleanup_done = False  # 防止重複清理
+        # 移除語言設定，改由前端處理
 
         # 新增：會話狀態管理
         self.status = SessionStatus.WAITING
@@ -175,6 +180,18 @@ class WebFeedbackSession:
         debug_log(
             f"會話 {self.session_id} 初始化完成，自動清理延遲: {auto_cleanup_delay}秒，最大空閒: {max_idle_time}秒"
         )
+
+    def get_message_code(self, key: str) -> str:
+        """
+        獲取訊息代碼
+
+        Args:
+            key: 訊息 key
+
+        Returns:
+            訊息代碼（用於前端 i18n）
+        """
+        return get_message_code(key)
 
     def next_step(self, message: str | None = None) -> bool:
         """進入下一個狀態 - 單向流轉，不可倒退"""
@@ -484,8 +501,9 @@ class WebFeedbackSession:
             try:
                 await self.websocket.send_json(
                     {
-                        "type": "feedback_received",
-                        "message": "反饋已成功提交",
+                        "type": "notification",
+                        "code": self.get_message_code("FEEDBACK_SUBMITTED"),
+                        "severity": "success",
                         "status": self.status.value,
                     }
                 )
@@ -738,21 +756,24 @@ class WebFeedbackSession:
             # 2. 關閉 WebSocket 連接
             if self.websocket:
                 try:
-                    # 根據清理原因發送不同的通知消息
-                    message_map = {
-                        CleanupReason.TIMEOUT: "會話已超時，介面將自動關閉",
-                        CleanupReason.EXPIRED: "會話已過期，介面將自動關閉",
-                        CleanupReason.MEMORY_PRESSURE: "系統內存不足，會話將被清理",
-                        CleanupReason.MANUAL: "會話已被手動清理",
-                        CleanupReason.ERROR: "會話發生錯誤，將被清理",
-                        CleanupReason.SHUTDOWN: "系統正在關閉，會話將被清理",
+                    # 根據清理原因獲取訊息代碼
+                    code_key_map = {
+                        CleanupReason.TIMEOUT: "TIMEOUT_CLEANUP",
+                        CleanupReason.EXPIRED: "EXPIRED_CLEANUP",
+                        CleanupReason.MEMORY_PRESSURE: "MEMORY_PRESSURE_CLEANUP",
+                        CleanupReason.MANUAL: "MANUAL_CLEANUP",
+                        CleanupReason.ERROR: "ERROR_CLEANUP",
+                        CleanupReason.SHUTDOWN: "SHUTDOWN_CLEANUP",
                     }
+
+                    code_key = code_key_map.get(reason, "SESSION_CLEANUP")
 
                     await self.websocket.send_json(
                         {
-                            "type": "session_cleanup",
+                            "type": "notification",
+                            "code": self.get_message_code(code_key),
+                            "severity": "warning",
                             "reason": reason.value,
-                            "message": message_map.get(reason, "會話將被清理"),
                         }
                     )
                     await asyncio.sleep(0.1)  # 給前端一點時間處理消息

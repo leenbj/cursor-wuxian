@@ -670,6 +670,11 @@
                 break;
             case 'session_updated':
                 console.log('🔄 收到會話更新訊息:', data.session_info);
+                // 處理訊息代碼
+                if (data.messageCode && window.i18nManager) {
+                    const message = window.i18nManager.t(data.messageCode);
+                    window.MCPFeedback.Utils.showMessage(message, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS);
+                }
                 this._originalHandleSessionUpdated(data);
                 break;
             case 'desktop_close_request':
@@ -712,9 +717,20 @@
         this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED);
         this.uiManager.setLastSubmissionTime(Date.now());
 
+        // 停止自動提交計時器（如果正在運行）
+        if (this.autoSubmitManager && this.autoSubmitManager.isEnabled) {
+            console.log('⏸️ 反饋已成功提交，停止自動提交倒數計時器');
+            this.autoSubmitManager.stop();
+        }
+
         // 顯示成功訊息
-        const successMessage = window.i18nManager ? window.i18nManager.t('feedback.submitSuccess') : '回饋提交成功！';
-        window.MCPFeedback.Utils.showMessage(data.message || successMessage, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS);
+        if (data.messageCode && window.i18nManager) {
+            const message = window.i18nManager.t(data.messageCode, data.params);
+            window.MCPFeedback.Utils.showMessage(message, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS);
+        } else {
+            const successMessage = window.i18nManager ? window.i18nManager.t('feedback.submitSuccess') : '回饋提交成功！';
+            window.MCPFeedback.Utils.showMessage(data.message || successMessage, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS);
+        }
 
         // 更新 AI 摘要區域顯示「已送出反饋」狀態
         const submittedMessage = window.i18nManager ? window.i18nManager.t('feedback.submittedWaiting') : '已送出反饋，等待下次 MCP 調用...';
@@ -793,8 +809,11 @@
             }
 
             // 顯示新會話通知
+            const defaultMessage = window.i18nManager ? 
+                window.i18nManager.t('session.created') : 
+                'New MCP session created, page will refresh automatically';
             window.MCPFeedback.Utils.showMessage(
-                data.message || '新的 MCP 會話已創建，正在更新內容...',
+                data.message || defaultMessage,
                 window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS
             );
 
@@ -1101,7 +1120,10 @@
         const images = this.imageHandler ? this.imageHandler.getImages() : [];
 
         if (!feedback && images.length === 0) {
-            window.MCPFeedback.Utils.showMessage('請提供回饋文字或上傳圖片', window.MCPFeedback.Utils.CONSTANTS.MESSAGE_WARNING);
+            const message = window.i18nManager ? 
+                window.i18nManager.t('feedback.provideTextOrImage', '請提供回饋文字或上傳圖片') : 
+                '請提供回饋文字或上傳圖片';
+            window.MCPFeedback.Utils.showMessage(message, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_WARNING);
             return null;
         }
 
@@ -1128,6 +1150,12 @@
             // 2. 設置處理狀態
             if (this.uiManager) {
                 this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_PROCESSING);
+            }
+
+            // 停止自動提交計時器（如果正在運行）
+            if (this.autoSubmitManager && this.autoSubmitManager.isEnabled) {
+                console.log('⏸️ 手動提交反饋，停止自動提交倒數計時器');
+                this.autoSubmitManager.stop();
             }
 
             // 3. 發送回饋到 AI 助手

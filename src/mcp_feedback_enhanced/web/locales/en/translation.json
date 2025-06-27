@@ -50,7 +50,8 @@
         "sendFailed": "Send failed, please retry",
         "noContent": "No content to copy",
         "copySuccess": "Content copied to clipboard",
-        "copyFailed": "Failed to copy"
+        "copyFailed": "Failed to copy",
+        "provideTextOrImage": "Please provide feedback text or upload an image"
     },
     "summary": {
         "title": "📋 AI Work Summary",
@@ -96,7 +97,7 @@
         "summaryTitle": "📋 AI Work Summary",
         "feedbackTitle": "💬 Provide Feedback"
     },
-    "settings": {
+    "settingsUI": {
         "title": "⚙️ Settings",
         "language": "🌍 Language",
         "currentLanguage": "Current Language",
@@ -195,7 +196,7 @@
         "upload": "Upload",
         "download": "Download"
     },
-    "session": {
+    "sessionTimeout": {
         "timeout": "⏰ Session has timed out, interface will close automatically",
         "timeoutWarning": "Session is about to timeout",
         "timeoutDescription": "Due to prolonged inactivity, the session has timed out. The interface will automatically close in 3 seconds.",
@@ -261,7 +262,10 @@
             "clearSuccess": "Session history cleared successfully",
             "clearTitle": "Clear all session history records",
             "description": "Manage locally stored session history records, including retention period settings and data export functionality",
-            "exportDescription": "Export or clear locally stored session history records"
+            "exportDescription": "Export or clear locally stored session history records",
+            "exportFailed": "Export failed: {error}",
+            "clearFailed": "Clear failed: {error}",
+            "clearFailedGeneric": "Clear failed"
         },
         "retention": {
             "24hours": "24 hours",
@@ -296,6 +300,14 @@
             "clearAllTitle": "Clear all user message records from all sessions",
             "confirmClearAll": "Are you sure you want to clear all user message records from all sessions? This action cannot be undone.",
             "clearSuccess": "User message records cleared successfully"
+        },
+        "noActiveSession": "No active session data",
+        "sessionNotFound": "Session data not found",
+        "currentSession": {
+            "noData": "No current session data",
+            "noUserMessages": "Current session has no user message records",
+            "copyFailed": "Copy failed, please try again",
+            "dataManagerNotInit": "Data manager not initialized"
         }
     },
     "connectionMonitor": {
@@ -440,7 +452,8 @@
         "countdownLabel": "Submit Countdown",
         "pauseCountdown": "Pause Countdown",
         "resumeCountdown": "Resume Countdown",
-        "paused": "Auto submit paused"
+        "paused": "Auto submit paused",
+        "autoCommitNoPrompt": "Please select a prompt as auto-submit content first"
     },
     "audio": {
         "notification": {
@@ -514,5 +527,95 @@
             "permissionRequired": "Please grant notification permission first",
             "criticalTitle": "MCP Feedback - Warning"
         }
+    },
+    "system": {
+        "connectionEstablished": "WebSocket connection established",
+        "connectionLost": "WebSocket connection lost",
+        "connectionReconnecting": "Reconnecting...",
+        "connectionReconnected": "Reconnected",
+        "connectionFailed": "Connection failed",
+        "websocketError": "WebSocket error",
+        "memoryPressure": "Memory pressure cleanup",
+        "shutdown": "System shutdown",
+        "processKilled": "Process killed",
+        "heartbeatStopped": "Heartbeat stopped",
+        "websocketReady": "WebSocket ready"
+    },
+    "session": {
+        "noActiveSession": "No active session",
+        "created": "New MCP session created, page will refresh automatically",
+        "updated": "Session updated",
+        "expired": "Session expired",
+        "timeout": "Session timed out",
+        "cleaned": "Session cleaned",
+        "feedbackSubmitted": "Feedback submitted successfully",
+        "userMessageRecorded": "User message recorded",
+        "historySaved": "Session history saved ({{count}} sessions)",
+        "historyLoaded": "Session history loaded"
+    },
+    "settingsAPI": {
+        "saved": "Settings saved",
+        "loaded": "Settings loaded",
+        "cleared": "Settings cleared",
+        "saveFailed": "Save failed",
+        "loadFailed": "Load failed",
+        "clearFailed": "Clear failed",
+        "setFailed": "Set failed",
+        "invalidValue": "Invalid setting value",
+        "logLevelUpdated": "Log level updated",
+        "invalidLogLevel": "Invalid log level, must be one of DEBUG, INFO, WARN, ERROR"
+    },
+    "file": {
+        "uploadSuccess": "File uploaded successfully",
+        "uploadFailed": "File upload failed",
+        "sizeTooLarge": "File size exceeds limit",
+        "typeNotSupported": "File type not supported",
+        "processing": "Processing file...",
+        "removed": "File removed"
+    },
+    "prompt": {
+        "saved": "Prompt saved",
+        "deleted": "Prompt deleted",
+        "applied": "Prompt applied: {{name}}",
+        "importSuccess": "Prompts imported successfully",
+        "importFailed": "Prompts import failed",
+        "exportSuccess": "Prompts exported successfully",
+        "validationFailed": "Prompt validation failed"
+    },
+    "error": {
+        "generic": "An error occurred: {{error}}",
+        "network": "Network error",
+        "server": "Server error",
+        "timeout": "Operation timed out",
+        "invalidInput": "Invalid input",
+        "operationFailed": "Operation failed",
+        "userMessageFailed": "Failed to add user message",
+        "getSessionsFailed": "Failed to get sessions",
+        "getLogLevelFailed": "Failed to get log level",
+        "command": "Command execution error",
+        "resourceCleanup": "Resource cleanup error",
+        "processing": "Processing error"
+    },
+    "commandStatus": {
+        "executing": "Executing command...",
+        "completed": "Command completed",
+        "failed": "Command failed",
+        "outputReceived": "Output received",
+        "invalid": "Invalid command",
+        "error": "Command execution error"
+    },
+    "utils": {
+        "copySuccess": "Copied to clipboard",
+        "copyError": "Copy failed"
+    },
+    "fileUpload": {
+        "fileSizeExceeded": "Image size exceeds limit ({limit}): {filename}",
+        "maxFilesExceeded": "Maximum {maxFiles} files can be uploaded",
+        "processingFailed": "File processing failed, please retry"
+    },
+    "aria": {
+        "toggleAutoSubmit": "Toggle auto submit",
+        "toggleNotification": "Toggle notification",
+        "toggleAudioNotification": "Toggle audio notification"
     }
 }

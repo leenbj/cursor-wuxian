@@ -322,7 +322,8 @@
 
     // 從 API 載入日誌等級
     function loadLogLevelFromAPI() {
-        fetch('/api/log-level')
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/log-level?lang=' + lang)
             .then(function(response) {
                 if (response.ok) {
                     return response.json();
@@ -343,7 +344,8 @@
 
     // 保存日誌等級到 API
     function saveLogLevelToAPI(logLevel) {
-        fetch('/api/log-level', {
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/log-level?lang=' + lang, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -360,6 +362,11 @@
         })
         .then(function(data) {
             console.log('📋 日誌等級已保存:', data.logLevel);
+            // 處理訊息代碼
+            if (data.messageCode && window.i18nManager) {
+                const message = window.i18nManager.t(data.messageCode, data.params);
+                console.log('伺服器回應:', message);
+            }
         })
         .catch(function(error) {
             console.warn('⚠️ 保存日誌等級失敗:', error);

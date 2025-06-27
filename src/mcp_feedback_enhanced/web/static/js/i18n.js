@@ -8,9 +8,39 @@
 
 class I18nManager {
     constructor() {
-        this.currentLanguage = 'zh-CN';
+        this.currentLanguage = this.getDefaultLanguage();
         this.translations = {};
         this.loadingPromise = null;
+    }
+    
+    getDefaultLanguage() {
+        // 1. 先檢查本地儲存的設定
+        const savedLanguage = localStorage.getItem('language');
+        if (savedLanguage && ['zh-TW', 'zh-CN', 'en'].includes(savedLanguage)) {
+            console.log('🌐 使用儲存的語言設定:', savedLanguage);
+            return savedLanguage;
+        }
+        
+        // 2. 檢查瀏覽器語言
+        const browserLang = navigator.language || navigator.userLanguage;
+        console.log('🌐 瀏覽器語言:', browserLang);
+        
+        if (browserLang.startsWith('zh-TW') || browserLang.includes('Hant')) {
+            console.log('🌐 偵測到繁體中文環境');
+            return 'zh-TW';
+        }
+        if (browserLang.startsWith('zh') || browserLang.includes('Hans')) {
+            console.log('🌐 偵測到簡體中文環境');
+            return 'zh-CN';
+        }
+        if (browserLang.startsWith('en')) {
+            console.log('🌐 偵測到英文環境');
+            return 'en';
+        }
+        
+        // 3. 預設使用繁體中文
+        console.log('🌐 使用預設語言: zh-TW');
+        return 'zh-TW';
     }
 
     async init() {
@@ -163,6 +193,16 @@ class I18nManager {
             }
         });
 
+        // 翻譯有 data-i18n-aria-label 屬性的元素
+        const ariaLabelElements = document.querySelectorAll('[data-i18n-aria-label]');
+        ariaLabelElements.forEach(element => {
+            const key = element.getAttribute('data-i18n-aria-label');
+            const translation = this.t(key);
+            if (translation && translation !== key) {
+                element.setAttribute('aria-label', translation);
+            }
+        });
+
         // 更新動態內容
         this.updateDynamicContent();
 
@@ -290,31 +330,18 @@ class I18nManager {
         // 設定頁籤的下拉選擇器
         const selector = document.getElementById('settingsLanguageSelect');
         if (selector) {
-            // 設置當前值
+            // 只設置當前值，不綁定事件（讓 SettingsManager 統一處理）
             selector.value = this.currentLanguage;
             console.log(`🔧 setupLanguageSelectors: 設置 select.value = ${this.currentLanguage}`);
-
-            // 移除舊的事件監聽器（如果存在）
-            if (selector._i18nChangeHandler) {
-                selector.removeEventListener('change', selector._i18nChangeHandler);
-            }
-
-            // 添加新的事件監聽器 - 通過 SettingsManager 統一管理
-            selector._i18nChangeHandler = (e) => {
-                console.log(`🔄 i18n select change event: ${e.target.value}`);
-                if (window.feedbackApp && window.feedbackApp.settingsManager) {
-                    window.feedbackApp.settingsManager.set('language', e.target.value);
-                } else {
-                    this.setLanguage(e.target.value);
-                }
-            };
-            selector.addEventListener('change', selector._i18nChangeHandler);
+            
+            // 不再綁定事件監聽器，避免與 SettingsManager 衝突
+            // 事件處理完全交由 SettingsManager 負責
         }
 
         // 新版現代化語言選擇器
         const languageOptions = document.querySelectorAll('.language-option');
         if (languageOptions.length > 0) {
-            // 設置當前語言的活躍狀態和點擊事件
+            // 只設置當前語言的活躍狀態，不綁定事件
             languageOptions.forEach(option => {
                 const lang = option.getAttribute('data-lang');
                 if (lang === this.currentLanguage) {
@@ -322,20 +349,8 @@ class I18nManager {
                 } else {
                     option.classList.remove('active');
                 }
-
-                // 移除舊的事件監聽器（如果存在）
-                option.removeEventListener('click', option._languageClickHandler);
-
-                // 添加新的點擊事件監聽器 - 通過 SettingsManager 統一管理
-                option._languageClickHandler = () => {
-                    if (window.feedbackApp && window.feedbackApp.settingsManager) {
-                        window.feedbackApp.settingsManager.set('language', lang);
-                    } else {
-                        this.setLanguage(lang);
-                    }
-                };
-                option.addEventListener('click', option._languageClickHandler);
             });
+            // 事件監聽器由 SettingsManager 統一處理，避免重複綁定
         }
     }
 

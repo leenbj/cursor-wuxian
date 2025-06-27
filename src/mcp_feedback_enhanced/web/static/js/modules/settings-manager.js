@@ -23,11 +23,14 @@
     function SettingsManager(options) {
         options = options || {};
         
+        // 從 i18nManager 獲取當前語言作為預設值
+        const defaultLanguage = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        
         // 預設設定
         this.defaultSettings = {
             layoutMode: 'combined-vertical',
             autoClose: false,
-            language: 'zh-TW',
+            language: defaultLanguage,  // 使用 i18nManager 的當前語言
             imageSizeLimit: 0,
             enableBase64Detail: false,
             // 移除 activeTab - 頁籤切換無需持久化
@@ -80,6 +83,17 @@
                         console.log('沒有找到設定，使用預設值');
                         self.currentSettings = Utils.deepClone(self.defaultSettings);
                     }
+                    
+                    // 同步語言設定到 i18nManager
+                    if (self.currentSettings.language && window.i18nManager) {
+                        const currentI18nLanguage = window.i18nManager.getCurrentLanguage();
+                        if (self.currentSettings.language !== currentI18nLanguage) {
+                            console.log('🔧 SettingsManager.loadSettings: 同步語言設定到 i18nManager');
+                            console.log('  從:', currentI18nLanguage, '到:', self.currentSettings.language);
+                            window.i18nManager.setLanguage(self.currentSettings.language);
+                        }
+                    }
+                    
                     resolve(self.currentSettings);
                 })
                 .catch(function(error) {
@@ -94,7 +108,8 @@
      * 從伺服器載入設定
      */
     SettingsManager.prototype.loadFromServer = function() {
-        return fetch('/api/load-settings')
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        return fetch('/api/load-settings?lang=' + lang)
             .then(function(response) {
                 if (response.ok) {
                     return response.json();
@@ -146,7 +161,8 @@
     SettingsManager.prototype._performServerSave = function() {
         const self = this;
 
-        fetch('/api/save-settings', {
+        const lang = window.i18nManager ? window.i18nManager.getCurrentLanguage() : 'zh-TW';
+        fetch('/api/save-settings?lang=' + lang, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -154,10 +170,18 @@
             body: JSON.stringify(self.currentSettings)
         })
         .then(function(response) {
-            if (response.ok) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.status === 'success') {
                 console.log('設定已即時同步到伺服器端');
+                // 處理訊息代碼
+                if (data.messageCode && window.i18nManager) {
+                    const message = window.i18nManager.t(data.messageCode, data.params);
+                    console.log('伺服器回應:', message);
+                }
             } else {
-                console.warn('同步設定到伺服器端失敗:', response.status);
+                console.warn('同步設定到伺服器端失敗:', data);
             }
         })
         .catch(function(error) {
@@ -239,15 +263,12 @@
      * 處理語言變更
      */
     SettingsManager.prototype.handleLanguageChange = function(newLanguage) {
-        console.log('語言設定變更: ' + newLanguage);
+        console.log('🔄 SettingsManager.handleLanguageChange: ' + newLanguage);
 
         // 通知國際化系統（統一由 SettingsManager 管理）
         if (window.i18nManager) {
-            // 直接設定語言，不觸發 i18nManager 的保存邏輯
-            window.i18nManager.currentLanguage = newLanguage;
-            window.i18nManager.applyTranslations();
-            window.i18nManager.setupLanguageSelectors();
-            document.documentElement.lang = newLanguage;
+            // 使用 setLanguage 方法確保正確更新
+            window.i18nManager.setLanguage(newLanguage);
         }
 
         // 延遲更新動態文字，確保 i18n 已經載入新語言
@@ -688,7 +709,10 @@
                 try {
                     // 如果要啟用自動提交，檢查是否已選擇提示詞
                     if (newValue && (!currentPromptId || currentPromptId === '')) {
-                        Utils.showMessage('請先選擇一個提示詞作為自動提交內容', Utils.CONSTANTS.MESSAGE_WARNING);
+                        const message = window.i18nManager ? 
+                            window.i18nManager.t('settingsUI.autoCommitNoPrompt', '請先選擇一個提示詞作為自動提交內容') : 
+                            '請先選擇一個提示詞作為自動提交內容';
+                        Utils.showMessage(message, Utils.CONSTANTS.MESSAGE_WARNING);
                         return;
                     }
 

@@ -50,7 +50,8 @@
         "sendFailed": "发送失败，请重试",
         "noContent": "没有可复制的内容",
         "copySuccess": "内容已复制到剪贴板",
-        "copyFailed": "复制失败"
+        "copyFailed": "复制失败",
+        "provideTextOrImage": "请提供反馈文字或上传图片"
     },
     "summary": {
         "title": "📋 AI 工作摘要",
@@ -96,7 +97,7 @@
         "summaryTitle": "📋 AI 工作摘要",
         "feedbackTitle": "💬 提供反馈"
     },
-    "settings": {
+    "settingsUI": {
         "title": "⚙️ 设定",
         "language": "🌍 语言",
         "currentLanguage": "当前语言",
@@ -121,7 +122,8 @@
         "resetError": "重置设定时发生错误",
         "timeout": "连线逾时 (秒)",
         "autorefresh": "自动重新整理",
-        "debug": "除错模式"
+        "debug": "除错模式",
+        "autoCommitNoPrompt": "请先选择一个提示词作为自动提交内容"
     },
     "languages": {
         "zh-TW": "繁體中文",
@@ -195,7 +197,7 @@
         "upload": "上传",
         "download": "下载"
     },
-    "session": {
+    "sessionTimeout": {
         "timeout": "⏰ 会话已超时，界面将自动关闭",
         "timeoutWarning": "会话即将超时",
         "timeoutDescription": "由于长时间无响应，会话已超时。界面将在 3 秒后自动关闭。",
@@ -261,7 +263,10 @@
             "clearSuccess": "会话历史已清空",
             "clearTitle": "清空所有会话历史记录",
             "description": "管理本地存储的会话历史记录，包括保存期限设定和数据导出功能",
-            "exportDescription": "导出或清空本地存储的会话历史记录"
+            "exportDescription": "导出或清空本地存储的会话历史记录",
+            "exportFailed": "导出失败: {error}",
+            "clearFailed": "清空失败: {error}",
+            "clearFailedGeneric": "清空失败"
         },
         "retention": {
             "24hours": "24 小时",
@@ -296,6 +301,14 @@
             "clearAllTitle": "清空所有会话的用户消息记录",
             "confirmClearAll": "确定要清空所有会话的用户消息记录吗？此操作无法撤销。",
             "clearSuccess": "用户消息记录已清空"
+        },
+        "noActiveSession": "目前没有活跃的会话数据",
+        "sessionNotFound": "找不到会话资料",
+        "currentSession": {
+            "noData": "没有当前会话数据",
+            "noUserMessages": "当前会话没有用户消息记录",
+            "copyFailed": "复制失败，请重试",
+            "dataManagerNotInit": "数据管理器未初始化"
         }
     },
     "connectionMonitor": {
@@ -513,5 +526,82 @@
             "permissionRequired": "请先授权通知权限",
             "criticalTitle": "MCP Feedback - 警告"
         }
+    },
+    "system": {
+        "connectionEstablished": "WebSocket 连接已建立",
+        "connectionLost": "WebSocket 连接已断开",
+        "connectionReconnecting": "正在重新连接...",
+        "connectionReconnected": "已重新连接",
+        "connectionFailed": "连接失败",
+        "websocketError": "WebSocket 错误"
+    },
+    "session": {
+        "noActiveSession": "没有活跃会话",
+        "created": "新的 MCP 会话已创建，页面将自动刷新",
+        "updated": "会话已更新",
+        "expired": "会话已过期",
+        "timeout": "会话已超时",
+        "cleaned": "会话已清理",
+        "feedbackSubmitted": "反馈已成功提交",
+        "userMessageRecorded": "用户消息已记录",
+        "historySaved": "会话历史已保存（{{count}} 个会话）",
+        "historyLoaded": "会话历史已载入"
+    },
+    "settingsAPI": {
+        "saved": "设置已保存",
+        "loaded": "设置已载入",
+        "cleared": "设置已清除",
+        "saveFailed": "保存失败",
+        "loadFailed": "加载失败",
+        "clearFailed": "清除失败",
+        "invalidValue": "无效的设置值",
+        "logLevelUpdated": "日志等级已更新",
+        "invalidLogLevel": "无效的日志等级，必须是 DEBUG, INFO, WARN, ERROR 之一"
+    },
+    "file": {
+        "uploadSuccess": "文件上传成功",
+        "uploadFailed": "文件上传失败",
+        "sizeTooLarge": "文件大小超过限制",
+        "typeNotSupported": "不支持的文件类型",
+        "processing": "正在处理文件...",
+        "removed": "文件已移除"
+    },
+    "prompt": {
+        "saved": "提示词已保存",
+        "deleted": "提示词已删除",
+        "applied": "已套用提示词：{{name}}",
+        "importSuccess": "提示词导入成功",
+        "importFailed": "提示词导入失败",
+        "exportSuccess": "提示词导出成功",
+        "validationFailed": "提示词验证失败"
+    },
+    "error": {
+        "generic": "发生错误：{{error}}",
+        "network": "网络错误",
+        "server": "服务器错误",
+        "timeout": "操作超时",
+        "invalidInput": "输入无效",
+        "operationFailed": "操作失败"
+    },
+    "commandStatus": {
+        "executing": "正在执行命令...",
+        "completed": "命令执行完成",
+        "failed": "命令执行失败",
+        "outputReceived": "已接收输出",
+        "invalid": "无效的命令"
+    },
+    "utils": {
+        "copySuccess": "已复制到剪贴板",
+        "copyError": "复制失败"
+    },
+    "fileUpload": {
+        "fileSizeExceeded": "图片大小超过限制 ({limit}): {filename}",
+        "maxFilesExceeded": "最多只能上传 {maxFiles} 个文件",
+        "processingFailed": "文件处理失败，请重试"
+    },
+    "aria": {
+        "toggleAutoSubmit": "切换自动提交",
+        "toggleNotification": "切换通知",
+        "toggleAudioNotification": "切换音效通知"
     }
 }
