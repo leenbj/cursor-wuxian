@@ -282,6 +282,43 @@
                 self.copyCurrentUserContent();
             });
         }
+
+        // 會話歷史管理按鈕 - 會話管理頁籤
+        // 匯出全部按鈕
+        const sessionTabExportAllBtn = DOMUtils ?
+            DOMUtils.safeQuerySelector('#sessionTabExportAllBtn') :
+            document.querySelector('#sessionTabExportAllBtn');
+        if (sessionTabExportAllBtn) {
+            sessionTabExportAllBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                self.exportSessionHistory();
+            });
+        }
+
+        // 清空訊息記錄按鈕
+        const sessionTabClearMessagesBtn = DOMUtils ?
+            DOMUtils.safeQuerySelector('#sessionTabClearMessagesBtn') :
+            document.querySelector('#sessionTabClearMessagesBtn');
+        if (sessionTabClearMessagesBtn) {
+            sessionTabClearMessagesBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                self.clearUserMessages();
+            });
+        }
+
+        // 清空所有會話按鈕
+        const sessionTabClearAllBtn = DOMUtils ?
+            DOMUtils.safeQuerySelector('#sessionTabClearAllBtn') :
+            document.querySelector('#sessionTabClearAllBtn');
+        if (sessionTabClearAllBtn) {
+            sessionTabClearAllBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                self.clearSessionHistory();
+            });
+        }
     };
 
     /**
@@ -624,6 +661,40 @@
             if (window.MCPFeedback && window.MCPFeedback.Utils && window.MCPFeedback.Utils.showMessage) {
                 window.MCPFeedback.Utils.showMessage('清空失敗: ' + error.message, 'error');
             }
+        }
+    };
+
+    /**
+     * 清空用戶訊息記錄
+     */
+    SessionManager.prototype.clearUserMessages = function() {
+        if (!this.dataManager) {
+            console.error('📋 DataManager 未初始化');
+            return;
+        }
+
+        const i18n = window.i18nManager;
+        const confirmMessage = i18n ?
+            i18n.t('sessionHistory.userMessages.confirmClearAll') :
+            '確定要清空所有會話的用戶訊息記錄嗎？此操作無法復原。';
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            const success = this.dataManager.clearAllUserMessages();
+            if (success) {
+                const successMessage = i18n ?
+                    i18n.t('sessionHistory.userMessages.clearSuccess') :
+                    '用戶訊息記錄已清空';
+                this.showMessage(successMessage, 'success');
+            } else {
+                this.showMessage('清空失敗', 'error');
+            }
+        } catch (error) {
+            console.error('📋 清空用戶訊息記錄失敗:', error);
+            this.showMessage('清空失敗: ' + error.message, 'error');
         }
     };
 

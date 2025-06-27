@@ -858,6 +858,65 @@
   outline-offset: 2px;
 }
 
+/* ===== 會話歷史區塊標題樣式 ===== */
+.session-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.session-history-header h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.session-history-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 響應式設計 - 小螢幕上的調整 */
+@media (max-width: 768px) {
+  .session-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .session-history-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  
+  .session-history-actions .btn-small {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+}
+
+/* 超小螢幕上使用下拉選單替代 */
+@media (max-width: 480px) {
+  .session-history-actions {
+    position: relative;
+  }
+  
+  .session-history-actions .btn-small:not(:first-child) {
+    display: none;
+  }
+  
+  /* 可選：將第一個按鈕改為下拉選單觸發器 */
+  .session-history-actions .btn-small:first-child::after {
+    content: ' ▼';
+    font-size: 10px;
+    margin-left: 4px;
+  }
+}
+
 /* ===== 會話詳情彈窗 ===== */
 .session-details-modal {
   position: fixed;

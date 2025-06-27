@@ -254,10 +254,12 @@
             "export": "Export",
             "clear": "Clear",
             "exportAll": "Export All",
+            "exportAllTitle": "Export all session history to file",
             "exportSingle": "Export This Session",
             "confirmClear": "Are you sure you want to clear all session history?",
             "exportSuccess": "Session history exported successfully",
             "clearSuccess": "Session history cleared successfully",
+            "clearTitle": "Clear all session history records",
             "description": "Manage locally stored session history records, including retention period settings and data export functionality",
             "exportDescription": "Export or clear locally stored session history records"
         },
@@ -291,6 +293,7 @@
             "imageCount": "Image Count",
             "timestamp": "Timestamp",
             "clearAll": "Clear Message Records",
+            "clearAllTitle": "Clear all user message records from all sessions",
             "confirmClearAll": "Are you sure you want to clear all user message records from all sessions? This action cannot be undone.",
             "clearSuccess": "User message records cleared successfully"
         }
