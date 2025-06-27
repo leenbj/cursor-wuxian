@@ -258,6 +258,30 @@
                 self.showSessionDetails();
             });
         }
+
+        // 复制当前会话内容按钮
+        const copySessionButton = DOMUtils ?
+            DOMUtils.safeQuerySelector('#copyCurrentSessionContent') :
+            document.querySelector('#copyCurrentSessionContent');
+        if (copySessionButton) {
+            copySessionButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                self.copyCurrentSessionContent();
+            });
+        }
+
+        // 复制当前用户内容按钮
+        const copyUserButton = DOMUtils ?
+            DOMUtils.safeQuerySelector('#copyCurrentUserContent') :
+            document.querySelector('#copyCurrentUserContent');
+        if (copyUserButton) {
+            copyUserButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                self.copyCurrentUserContent();
+            });
+        }
     };
 
     /**
@@ -645,6 +669,242 @@
             if (window.MCPFeedback && window.MCPFeedback.Utils && window.MCPFeedback.Utils.showMessage) {
                 window.MCPFeedback.Utils.showMessage('會話管理器未初始化', 'error');
             }
+        }
+    };
+
+    /**
+     * 复制当前会话内容
+     */
+    SessionManager.prototype.copyCurrentSessionContent = function() {
+        console.log('📋 复制当前会话内容...');
+
+        try {
+            const currentSession = this.dataManager.getCurrentSession();
+            if (!currentSession) {
+                this.showMessage('没有当前会话数据', 'error');
+                return;
+            }
+
+            const content = this.formatCurrentSessionContent(currentSession);
+            this.copyToClipboard(content, '当前会话内容已复制到剪贴板');
+        } catch (error) {
+            console.error('复制当前会话内容失败:', error);
+            this.showMessage('复制失败，请重试', 'error');
+        }
+    };
+
+    /**
+     * 复制当前用户发送的内容
+     */
+    SessionManager.prototype.copyCurrentUserContent = function() {
+        console.log('📝 复制当前用户发送的内容...');
+        console.log('📝 this.dataManager 存在吗?', !!this.dataManager);
+
+        try {
+            if (!this.dataManager) {
+                console.log('📝 dataManager 不存在，尝试其他方式获取数据');
+                this.showMessage('数据管理器未初始化', 'error');
+                return;
+            }
+
+            const currentSession = this.dataManager.getCurrentSession();
+            console.log('📝 当前会话数据:', currentSession);
+
+            if (!currentSession) {
+                console.log('📝 没有当前会话数据');
+                this.showMessage('当前会话没有数据', 'warning');
+                return;
+            }
+
+            console.log('📝 用户消息数组:', currentSession.user_messages);
+            console.log('📝 用户消息数组长度:', currentSession.user_messages ? currentSession.user_messages.length : 'undefined');
+
+            if (!currentSession.user_messages || currentSession.user_messages.length === 0) {
+                console.log('📝 没有用户消息记录');
+                this.showMessage('当前会话没有用户消息记录', 'warning');
+                return;
+            }
+
+            // 在这里也添加调试信息
+            console.log('📝 准备格式化用户消息，数量:', currentSession.user_messages.length);
+            console.log('📝 第一条消息内容:', currentSession.user_messages[0]);
+
+            const content = this.formatCurrentUserContent(currentSession.user_messages);
+            console.log('📝 格式化后的内容长度:', content.length);
+            console.log('📝 格式化后的内容预览:', content.substring(0, 200));
+
+            this.copyToClipboard(content, '当前用户内容已复制到剪贴板');
+        } catch (error) {
+            console.error('📝 复制当前用户内容失败:', error);
+            console.error('📝 错误堆栈:', error.stack);
+            this.showMessage('复制失败，请重试', 'error');
+        }
+    };
+
+    /**
+     * 格式化当前会话内容
+     */
+    SessionManager.prototype.formatCurrentSessionContent = function(sessionData) {
+        const lines = [];
+        lines.push('# MCP Feedback Enhanced - 当前会话内容');
+        lines.push('');
+        lines.push(`**会话ID**: ${sessionData.session_id || 'N/A'}`);
+        lines.push(`**项目目录**: ${sessionData.project_directory || 'N/A'}`);
+        lines.push(`**摘要**: ${sessionData.summary || 'N/A'}`);
+        lines.push(`**状态**: ${sessionData.status || 'N/A'}`);
+        lines.push(`**创建时间**: ${sessionData.created_at || 'N/A'}`);
+        lines.push(`**更新时间**: ${sessionData.updated_at || 'N/A'}`);
+        lines.push('');
+
+        if (sessionData.user_messages && sessionData.user_messages.length > 0) {
+            lines.push('## 用户消息');
+            sessionData.user_messages.forEach((msg, index) => {
+                lines.push(`### 消息 ${index + 1}`);
+                lines.push(msg);
+                lines.push('');
+            });
+        }
+
+        if (sessionData.ai_responses && sessionData.ai_responses.length > 0) {
+            lines.push('## AI 响应');
+            sessionData.ai_responses.forEach((response, index) => {
+                lines.push(`### 响应 ${index + 1}`);
+                lines.push(response);
+                lines.push('');
+            });
+        }
+
+        return lines.join('\n');
+    };
+
+    /**
+     * 格式化当前用户内容
+     */
+    SessionManager.prototype.formatCurrentUserContent = function(userMessages) {
+        const lines = [];
+        lines.push('# MCP Feedback Enhanced - 用户发送内容');
+        lines.push('');
+
+        userMessages.forEach((msg, index) => {
+            lines.push(`## 消息 ${index + 1}`);
+
+            // 调试：输出完整的消息对象
+            console.log(`📝 消息 ${index + 1} 完整对象:`, msg);
+            console.log(`📝 消息 ${index + 1} 所有属性:`, Object.keys(msg));
+
+            // 添加时间戳信息 - 简化版本，直接使用当前时间
+            let timeStr = '未知时间';
+
+            // 检查是否有时间戳字段
+            if (msg.timestamp) {
+                // 如果时间戳看起来不正常（太小），直接使用当前时间
+                if (msg.timestamp < 1000000000) { // 小于2001年的时间戳，可能是相对时间
+                    timeStr = new Date().toLocaleString('zh-CN');
+                    console.log('📝 时间戳异常，使用当前时间:', msg.timestamp);
+                } else {
+                    // 正常处理时间戳
+                    let timestamp = msg.timestamp;
+                    if (timestamp > 1e12) {
+                        // 毫秒时间戳
+                        timeStr = new Date(timestamp).toLocaleString('zh-CN');
+                    } else {
+                        // 秒时间戳
+                        timeStr = new Date(timestamp * 1000).toLocaleString('zh-CN');
+                    }
+                }
+            } else {
+                // 没有时间戳，使用当前时间
+                timeStr = new Date().toLocaleString('zh-CN');
+                console.log('📝 没有时间戳字段，使用当前时间');
+            }
+
+            lines.push(`**时间**: ${timeStr}`);
+
+            // 添加提交方式
+            if (msg.submission_method) {
+                const methodText = msg.submission_method === 'auto' ? '自动提交' : '手动提交';
+                lines.push(`**提交方式**: ${methodText}`);
+            }
+
+            // 处理消息内容
+            if (msg.content !== undefined) {
+                // 完整记录模式 - 显示实际内容
+                lines.push(`**内容**: ${msg.content}`);
+
+                // 如果有图片，显示图片数量
+                if (msg.images && msg.images.length > 0) {
+                    lines.push(`**图片数量**: ${msg.images.length}`);
+                }
+            } else if (msg.content_length !== undefined) {
+                // 基本统计模式 - 显示统计信息
+                lines.push(`**内容长度**: ${msg.content_length} 字符`);
+                lines.push(`**图片数量**: ${msg.image_count || 0}`);
+                lines.push(`**有内容**: ${msg.has_content ? '是' : '否'}`);
+            } else if (msg.privacy_note) {
+                // 隐私保护模式
+                lines.push(`**内容**: [内容记录已停用 - 隐私设置]`);
+            } else {
+                // 兜底情况 - 尝试显示对象的JSON格式
+                lines.push(`**原始数据**: ${JSON.stringify(msg, null, 2)}`);
+            }
+
+            lines.push('');
+        });
+
+        return lines.join('\n');
+    };
+
+    /**
+     * 复制到剪贴板
+     */
+    SessionManager.prototype.copyToClipboard = function(text, successMessage) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                this.showMessage(successMessage, 'success');
+            }).catch(err => {
+                console.error('复制到剪贴板失败:', err);
+                this.fallbackCopyToClipboard(text, successMessage);
+            });
+        } else {
+            this.fallbackCopyToClipboard(text, successMessage);
+        }
+    };
+
+    /**
+     * 降级复制方法
+     */
+    SessionManager.prototype.fallbackCopyToClipboard = function(text, successMessage) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            document.execCommand('copy');
+            this.showMessage(successMessage, 'success');
+        } catch (err) {
+            console.error('降级复制失败:', err);
+            this.showMessage('复制失败，请手动复制', 'error');
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    };
+
+    /**
+     * 显示消息
+     */
+    SessionManager.prototype.showMessage = function(message, type) {
+        if (window.MCPFeedback && window.MCPFeedback.Utils && window.MCPFeedback.Utils.showMessage) {
+            const messageType = type === 'success' ? window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS :
+                               type === 'warning' ? window.MCPFeedback.Utils.CONSTANTS.MESSAGE_WARNING :
+                               window.MCPFeedback.Utils.CONSTANTS.MESSAGE_ERROR;
+            window.MCPFeedback.Utils.showMessage(message, messageType);
+        } else {
+            console.log(`[${type.toUpperCase()}] ${message}`);
         }
     };
 

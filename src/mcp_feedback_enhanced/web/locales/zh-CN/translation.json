@@ -156,6 +156,10 @@
         "submitted": {
             "title": "反馈已提交",
             "message": "等待下次 MCP 调用"
+        },
+        "completed": {
+            "title": "已完成",
+            "message": "会话已完成"
         }
     },
     "notifications": {

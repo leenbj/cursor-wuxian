@@ -647,7 +647,23 @@
         const submittedMessage = window.i18nManager ? window.i18nManager.t('feedback.submittedWaiting') : '已送出反饋，等待下次 MCP 調用...';
         this.updateSummaryStatus(submittedMessage);
 
+        // 刷新會話列表以顯示最新狀態
+        this.refreshSessionList();
+
         console.log('反饋已提交，頁面保持開啟狀態');
+    };
+
+    /**
+     * 刷新會話列表以顯示最新狀態
+     */
+    FeedbackApp.prototype.refreshSessionList = function() {
+        // 如果有會話管理器，觸發數據刷新
+        if (this.sessionManager && this.sessionManager.dataManager) {
+            console.log('🔄 刷新會話列表以顯示最新狀態');
+            this.sessionManager.dataManager.loadFromServer();
+        } else {
+            console.log('⚠️ 會話管理器未初始化，跳過會話列表刷新');
+        }
     };
 
     /**
@@ -682,7 +698,46 @@
      * 處理會話更新（原始版本，供防抖使用）
      */
     FeedbackApp.prototype._originalHandleSessionUpdated = function(data) {
-        console.log('🔄 處理會話更新:', data.session_info);
+        console.log('🔄 處理會話更新:', data);
+        console.log('🔍 檢查 action 字段:', data.action);
+        console.log('🔍 檢查 type 字段:', data.type);
+
+        // 檢查是否是新會話創建的通知
+        if (data.action === 'new_session_created' || data.type === 'new_session_created') {
+            console.log('🆕 檢測到新會話創建，完全刷新頁面以確保狀態同步');
+
+            // 播放音效通知
+            if (this.audioManager) {
+                this.audioManager.playNotification();
+            }
+
+            // 顯示新會話通知
+            window.MCPFeedback.Utils.showMessage(
+                data.message || '新的 MCP 會話已創建，正在打開新窗口...',
+                window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS
+            );
+
+            // 使用 window.open 打開新窗口並關閉當前窗口
+            setTimeout(function() {
+                console.log('🔄 使用 window.open 打開新窗口');
+
+                // 打開新窗口
+                const newWindow = window.open(window.location.href, '_blank');
+
+                if (newWindow) {
+                    console.log('✅ 新窗口打開成功，關閉當前窗口');
+                    // 短暫延遲後關閉當前窗口
+                    setTimeout(function() {
+                        window.close();
+                    }, 500);
+                } else {
+                    console.warn('❌ window.open 被阻止，回退到頁面刷新');
+                    window.location.reload();
+                }
+            }, 1500);
+
+            return; // 提前返回，不執行後續的局部更新邏輯
+        }
 
         // 播放音效通知
         if (this.audioManager) {
@@ -758,8 +813,16 @@
                 }
             }
 
-            // 重置回饋狀態為等待新回饋
-            this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, newSessionId);
+            // 檢查當前狀態，只有在非已提交狀態時才重置
+            const currentState = this.uiManager.getFeedbackState();
+            if (currentState !== window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED) {
+                this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, newSessionId);
+                console.log('🔄 會話更新：重置回饋狀態為等待新回饋');
+            } else {
+                console.log('🔒 會話更新：保護已提交狀態，不重置');
+                // 更新會話ID但保持已提交狀態
+                this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED, newSessionId);
+            }
 
             // 檢查並啟動自動提交（如果條件滿足）
             const self = this;
@@ -799,7 +862,16 @@
      * 處理狀態更新（原始版本，供防抖使用）
      */
     FeedbackApp.prototype._originalHandleStatusUpdate = function(statusInfo) {
-        console.log('處理狀態更新:', statusInfo);
+        console.log('📊 處理狀態更新:', statusInfo);
+
+        const sessionId = statusInfo.session_id;
+        console.log('🔍 狀態更新詳情:', {
+            currentSessionId: this.currentSessionId,
+            newSessionId: sessionId,
+            status: statusInfo.status,
+            message: statusInfo.message,
+            isNewSession: sessionId !== this.currentSessionId
+        });
 
         // 更新 SessionManager 的狀態資訊
         if (this.sessionManager && this.sessionManager.updateStatusInfo) {
@@ -812,36 +884,39 @@
             document.title = 'MCP Feedback - ' + projectName;
         }
 
-        // 提取會話 ID
-        const sessionId = statusInfo.session_id || this.currentSessionId;
+        // 使用之前已聲明的 sessionId
 
-        // 根據狀態更新 UI
+        // 前端只管理會話ID，所有狀態都從服務器獲取
+        console.log('📊 收到服務器狀態更新:', statusInfo.status, '會話ID:', sessionId);
+
+        // 更新當前會話ID
+        if (sessionId) {
+            this.currentSessionId = sessionId;
+            console.log('🔄 更新當前會話ID:', sessionId.substring(0, 8) + '...');
+        }
+
+        // 刷新會話列表以顯示最新狀態
+        this.refreshSessionList();
+
+        // 根據服務器狀態更新消息顯示（不修改前端狀態）
         switch (statusInfo.status) {
             case 'feedback_submitted':
-                this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED, sessionId);
                 const submittedMessage = window.i18nManager ? window.i18nManager.t('feedback.submittedWaiting') : '已送出反饋，等待下次 MCP 調用...';
                 this.updateSummaryStatus(submittedMessage);
                 break;
-
-            case 'active':
             case 'waiting':
-                // 檢查是否是新會話
-                if (sessionId && sessionId !== this.currentSessionId) {
-                    this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionId);
-                } else if (this.uiManager.getFeedbackState() !== window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED) {
-                    this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionId);
-                }
+                const waitingMessage = window.i18nManager ? window.i18nManager.t('feedback.waitingForUser') : '等待用戶回饋...';
+                this.updateSummaryStatus(waitingMessage);
 
-                if (statusInfo.status === 'waiting') {
-                    const waitingMessage = window.i18nManager ? window.i18nManager.t('feedback.waitingForUser') : '等待用戶回饋...';
-                    this.updateSummaryStatus(waitingMessage);
-
-                    // 檢查並啟動自動提交（如果條件滿足）
-                    const self = this;
-                    setTimeout(function() {
-                        self.checkAndStartAutoSubmit();
-                    }, 100); // 短暫延遲確保狀態更新完成
-                }
+                // 檢查並啟動自動提交（如果條件滿足）
+                const self = this;
+                setTimeout(function() {
+                    self.checkAndStartAutoSubmit();
+                }, 100);
+                break;
+            case 'completed':
+                const completedMessage = window.i18nManager ? window.i18nManager.t('feedback.completed') : '會話已完成';
+                this.updateSummaryStatus(completedMessage);
                 break;
         }
     };
@@ -884,10 +959,15 @@
      * 檢查是否可以提交回饋
      */
     FeedbackApp.prototype.canSubmitFeedback = function() {
-        return this.webSocketManager &&
-               this.webSocketManager.isReady() &&
-               this.uiManager &&
-               this.uiManager.getFeedbackState() === window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING;
+        // 簡化檢查：只檢查WebSocket連接，狀態由服務器端驗證
+        const wsReady = this.webSocketManager && this.webSocketManager.isReady();
+
+        console.log('🔍 提交檢查:', {
+            wsReady: wsReady,
+            sessionId: this.currentSessionId
+        });
+
+        return wsReady;
     };
 
     /**
@@ -1164,13 +1244,8 @@
     FeedbackApp.prototype.handleSessionUpdate = function(sessionData) {
         console.log('🔄 處理自動檢測到的會話更新:', sessionData);
 
-        // 更新當前會話 ID
+        // 只更新當前會話 ID，不管理狀態
         this.currentSessionId = sessionData.session_id;
-
-        // 重置回饋狀態
-        if (this.uiManager) {
-            this.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionData.session_id);
-        }
 
         // 局部更新頁面內容
         this.refreshPageContent();
@@ -1194,9 +1269,17 @@
             .then(function(sessionData) {
                 console.log('📥 獲取到最新會話資料:', sessionData);
 
-                // 重置回饋狀態
+                // 檢查並保護已提交狀態
                 if (sessionData.session_id && self.uiManager) {
-                    self.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionData.session_id);
+                    const currentState = self.uiManager.getFeedbackState();
+                    if (currentState !== window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED) {
+                        self.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, sessionData.session_id);
+                        console.log('🔄 局部更新：重置回饋狀態為等待中');
+                    } else {
+                        console.log('🔒 局部更新：保護已提交狀態，不重置');
+                        // 只更新會話ID，保持已提交狀態
+                        self.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_SUBMITTED, sessionData.session_id);
+                    }
                 }
 
                 // 更新 AI 摘要內容

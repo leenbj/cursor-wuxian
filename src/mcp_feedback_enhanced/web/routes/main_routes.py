@@ -157,6 +157,68 @@ def setup_routes(manager: "WebUIManager"):
             }
         )
 
+    @manager.app.get("/api/all-sessions")
+    async def get_all_sessions():
+        """獲取所有會話的實時狀態"""
+        try:
+            sessions_data = []
+
+            # 獲取所有會話的實時狀態
+            for session_id, session in manager.sessions.items():
+                session_info = {
+                    "session_id": session.session_id,
+                    "project_directory": session.project_directory,
+                    "summary": session.summary,
+                    "status": session.status.value,
+                    "status_message": session.status_message,
+                    "created_at": int(session.created_at * 1000),  # 轉換為毫秒
+                    "last_activity": int(session.last_activity * 1000),
+                    "feedback_completed": session.feedback_completed.is_set(),
+                    "has_websocket": session.websocket is not None,
+                    "is_current": session == manager.current_session,
+                    "user_messages": session.user_messages  # 包含用戶消息記錄
+                }
+                sessions_data.append(session_info)
+
+            # 按創建時間排序（最新的在前）
+            sessions_data.sort(key=lambda x: x["created_at"], reverse=True)
+
+            debug_log(f"返回 {len(sessions_data)} 個會話的實時狀態")
+            return JSONResponse(content={"sessions": sessions_data})
+
+        except Exception as e:
+            debug_log(f"獲取所有會話狀態失敗: {e}")
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"獲取會話狀態失敗: {e!s}"}
+            )
+
+    @manager.app.post("/api/add-user-message")
+    async def add_user_message(request: Request):
+        """添加用戶消息到當前會話"""
+        try:
+            data = await request.json()
+            current_session = manager.get_current_session()
+
+            if not current_session:
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "沒有活躍會話"}
+                )
+
+            # 添加用戶消息到會話
+            current_session.add_user_message(data)
+
+            debug_log(f"用戶消息已添加到會話 {current_session.session_id}")
+            return JSONResponse(content={"status": "success", "message": "用戶消息已記錄"})
+
+        except Exception as e:
+            debug_log(f"添加用戶消息失敗: {e}")
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"添加用戶消息失敗: {e!s}"}
+            )
+
     @manager.app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
         """WebSocket 端點 - 重構後移除 session_id 依賴"""
@@ -187,6 +249,7 @@ def setup_routes(manager: "WebUIManager"):
                 await websocket.send_json(
                     {
                         "type": "session_updated",
+                        "action": "new_session_created",
                         "message": "新會話已創建，正在更新頁面內容",
                         "session_info": {
                             "project_directory": session.project_directory,
