@@ -51,6 +51,86 @@
   gap: 20px;
 }
 
+/* 緊湊版頂部欄 */
+.connection-monitor-bar.compact {
+  padding: 4px 12px;
+  gap: 0;
+  font-size: 12px;
+  height: 32px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* 緊湊版元素樣式 */
+.app-title-compact {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.info-separator {
+  margin: 0 6px;
+  color: var(--text-secondary);
+  opacity: 0.4;
+  font-size: 10px;
+}
+
+.project-info-compact,
+.session-info-compact,
+.countdown-display-compact,
+.connection-status-compact {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.project-info-compact .project-path-display {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+.session-info-compact .session-id-display {
+  font-size: 11px;
+  padding: 1px 4px;
+}
+
+.countdown-display-compact {
+  color: var(--warning-color);
+}
+
+.countdown-display-compact .countdown-timer {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.connection-status-compact {
+  margin-left: auto;
+}
+
+.connection-status-compact .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.connection-status-compact.connected {
+  color: var(--status-connected);
+}
+
+.connection-status-compact.disconnected {
+  color: var(--status-disconnected);
+}
+
+.connection-status-compact.connecting {
+  color: var(--status-connecting);
+}
+
 /* 應用資訊區域 */
 .app-info-section {
   display: flex;
@@ -648,42 +728,37 @@
 
 /* ===== 響應式設計 ===== */
 @media (max-width: 768px) {
-  .connection-monitor-bar {
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 16px;
+  /* 緊湊版頂部欄在移動設備上的調整 */
+  .connection-monitor-bar.compact {
+    padding: 4px 10px;
+    font-size: 11px;
+    overflow-x: auto;
+    white-space: nowrap;
   }
-
-  .app-info-section {
-    width: 100%;
-    text-align: center;
+  
+  /* 隱藏專案路徑以節省空間 */
+  .project-info-compact {
+    display: none;
   }
-
-  .app-title {
-    justify-content: center;
-    flex-wrap: wrap;
+  
+  /* 隱藏相關的分隔符 */
+  .project-info-compact + .info-separator {
+    display: none;
   }
-
-  .app-title h1 {
-    font-size: 16px;
+  
+  /* 調整標題字體 */
+  .app-title-compact {
+    font-size: 12px;
   }
-
-  .connection-status-group {
-    width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
+  
+  /* 減少分隔符間距 */
+  .info-separator {
+    margin: 0 6px;
   }
-
-  .connection-status-combined {
-    width: 100%;
-    align-items: center;
-  }
-
-  .detailed-status-info {
-    margin-left: 0;
-    margin-top: 0;
-    justify-content: center;
-    flex-wrap: wrap;
+  
+  /* 確保倒數計時器始終可見 */
+  .countdown-display-compact {
+    font-weight: bold;
   }
 
   /* 會話管理頁籤響應式調整 */
@@ -694,6 +769,28 @@
   .stats-grid {
     grid-template-columns: 1fr;
     gap: 8px;
+  }
+}
+
+/* 超小螢幕調整 */
+@media (max-width: 480px) {
+  /* 隱藏會話 ID */
+  .session-info-compact {
+    display: none;
+  }
+  
+  /* 隱藏相關的分隔符 */
+  .session-info-compact + .info-separator {
+    display: none;
+  }
+  
+  /* 保留核心資訊：標題、倒數計時器、連線狀態 */
+  .connection-monitor-bar.compact {
+    justify-content: space-between;
+  }
+  
+  .connection-status-compact {
+    margin-left: 0;
   }
 }
 
@@ -1202,5 +1299,34 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* 響應式設計 - 緊湊版頂部欄 */
+@media (max-width: 768px) {
+  /* 小螢幕隱藏專案路徑 */
+  .connection-monitor-bar.compact .project-info-compact {
+    display: none;
+  }
+  
+  /* 隱藏相鄰的分隔符 */
+  .connection-monitor-bar.compact .project-info-compact + .info-separator {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 極小螢幕只顯示最關鍵資訊 */
+  .connection-monitor-bar.compact .session-info-compact {
+    display: none;
+  }
+  
+  .connection-monitor-bar.compact .session-info-compact + .info-separator {
+    display: none;
+  }
+  
+  /* 調整標題字體大小 */
+  .app-title-compact {
+    font-size: 12px;
   }
 }

@@ -133,6 +133,36 @@
             indicator.className = 'connection-indicator ' + status;
         }
         
+        // 更新精簡的頂部狀態指示器（現在是緊湊版）
+        const minimalIndicator = document.getElementById('connectionStatusMinimal');
+        if (minimalIndicator) {
+            minimalIndicator.className = 'connection-status-compact ' + status;
+            const statusText = minimalIndicator.querySelector('.status-text');
+            if (statusText) {
+                let statusKey = '';
+                switch (status) {
+                    case 'connected':
+                        statusKey = 'connectionMonitor.connected';
+                        break;
+                    case 'connecting':
+                        statusKey = 'connectionMonitor.connecting';
+                        break;
+                    case 'disconnected':
+                        statusKey = 'connectionMonitor.disconnected';
+                        break;
+                    case 'reconnecting':
+                        statusKey = 'connectionMonitor.reconnecting';
+                        break;
+                    default:
+                        statusKey = 'connectionMonitor.unknown';
+                }
+                statusText.setAttribute('data-i18n', statusKey);
+                if (window.i18nManager) {
+                    statusText.textContent = window.i18nManager.t(statusKey);
+                }
+            }
+        }
+        
         // 處理特殊狀態
         switch (status) {
             case 'connected':
@@ -282,15 +312,30 @@
             }
         }
         
+        // 更新統計面板中的延遲顯示
+        const statsLatency = document.getElementById('statsLatency');
+        if (statsLatency) {
+            statsLatency.textContent = this.currentLatency > 0 ? this.currentLatency + 'ms' : '--ms';
+        }
+        
         // 更新連線時間
-        if (this.connectionTimeDisplay && this.connectionStartTime) {
+        let connectionTimeStr = '--:--';
+        if (this.connectionStartTime) {
             const duration = Math.floor((Date.now() - this.connectionStartTime) / 1000);
             const minutes = Math.floor(duration / 60);
             const seconds = duration % 60;
+            connectionTimeStr = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+        
+        if (this.connectionTimeDisplay) {
             const connectionTimeLabel = window.i18nManager ? window.i18nManager.t('connectionMonitor.connectionTime') : '連線時間';
-            this.connectionTimeDisplay.textContent = connectionTimeLabel + ': ' +
-                String(minutes).padStart(2, '0') + ':' +
-                String(seconds).padStart(2, '0');
+            this.connectionTimeDisplay.textContent = connectionTimeLabel + ': ' + connectionTimeStr;
+        }
+        
+        // 更新統計面板中的連線時間
+        const statsConnectionTime = document.getElementById('statsConnectionTime');
+        if (statsConnectionTime) {
+            statsConnectionTime.textContent = connectionTimeStr;
         }
         
         // 更新重連次數
@@ -300,9 +345,34 @@
             this.reconnectCountDisplay.textContent = reconnectLabel + ': ' + this.reconnectCount + ' ' + timesLabel;
         }
         
+        // 更新統計面板中的重連次數
+        const statsReconnectCount = document.getElementById('statsReconnectCount');
+        if (statsReconnectCount) {
+            statsReconnectCount.textContent = this.reconnectCount.toString();
+        }
+        
         // 更新訊息計數
         if (this.messageCountDisplay) {
             this.messageCountDisplay.textContent = this.messageCount;
+        }
+        
+        // 更新統計面板中的訊息計數
+        const statsMessageCount = document.getElementById('statsMessageCount');
+        if (statsMessageCount) {
+            statsMessageCount.textContent = this.messageCount.toString();
+        }
+        
+        // 更新統計面板中的會話數和狀態
+        const sessionCount = document.getElementById('sessionCount');
+        const statsSessionCount = document.getElementById('statsSessionCount');
+        if (sessionCount && statsSessionCount) {
+            statsSessionCount.textContent = sessionCount.textContent;
+        }
+        
+        const sessionStatusText = document.getElementById('sessionStatusText');
+        const statsSessionStatus = document.getElementById('statsSessionStatus');
+        if (sessionStatusText && statsSessionStatus) {
+            statsSessionStatus.textContent = sessionStatusText.textContent;
         }
     };
 

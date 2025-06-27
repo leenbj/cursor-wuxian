@@ -482,14 +482,18 @@
 
     /**
      * 重置回饋表單
+     * @param {boolean} clearText - 是否清空文字內容，預設為 false
      */
-    UIManager.prototype.resetFeedbackForm = function() {
+    UIManager.prototype.resetFeedbackForm = function(clearText) {
         console.log('🔄 重置回饋表單...');
 
-        // 清空回饋輸入
+        // 根據參數決定是否清空回饋輸入
         const feedbackInput = Utils.safeQuerySelector('#combinedFeedbackText');
         if (feedbackInput) {
-            feedbackInput.value = '';
+            if (clearText === true) {
+                feedbackInput.value = '';
+                console.log('📝 已清空文字內容');
+            }
             feedbackInput.disabled = false;
         }
 

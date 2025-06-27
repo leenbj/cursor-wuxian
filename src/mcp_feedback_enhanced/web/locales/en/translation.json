@@ -47,7 +47,10 @@
         "processingFeedback": "Processing, please wait",
         "connectingMessage": "WebSocket connecting, feedback will be submitted automatically when connection is ready...",
         "invalidState": "Current state does not allow submission",
-        "sendFailed": "Send failed, please retry"
+        "sendFailed": "Send failed, please retry",
+        "noContent": "No content to copy",
+        "copySuccess": "Content copied to clipboard",
+        "copyFailed": "Failed to copy"
     },
     "summary": {
         "title": "📋 AI Work Summary",
@@ -321,7 +324,11 @@
             "latencyMs": "Latency",
             "sessions": "Sessions",
             "reconnects": "Reconnects"
-        }
+        },
+        "unknown": "Unknown"
+    },
+    "stats": {
+        "detailedStats": "Detailed Statistics"
     },
 
     "dynamic": {
@@ -380,6 +387,7 @@
     },
     "about": {
         "title": "ℹ️ About",
+        "description": "A powerful MCP server that provides human-in-the-loop feedback functionality for AI-assisted development tools. Features a Web UI interface with rich capabilities including image upload, command execution, and multi-language support.",
         "appInfo": "Application Information",
         "version": "Version",
         "projectLinks": "Project Links",

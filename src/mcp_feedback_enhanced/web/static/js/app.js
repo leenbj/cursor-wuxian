@@ -314,6 +314,15 @@
                 });
             }
 
+            // 複製用戶內容按鈕
+            const copyUserFeedback = window.MCPFeedback.Utils.safeQuerySelector('#copyUserFeedback');
+            if (copyUserFeedback) {
+                copyUserFeedback.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    self.copyUserFeedback();
+                });
+            }
+
             // 快捷鍵
             document.addEventListener('keydown', function(e) {
                 // Ctrl+Enter 提交回饋
@@ -1058,8 +1067,14 @@
             });
 
             if (success) {
-                // 清空表單
-                this.clearFeedback();
+                // 重置表單狀態但保留文字內容
+                if (this.uiManager) {
+                    this.uiManager.resetFeedbackForm(false);  // false 表示不清空文字
+                }
+                // 只清空圖片
+                if (this.imageHandler) {
+                    this.imageHandler.clearImages();
+                }
                 console.log('📤 回饋已發送，等待服務器確認...');
             } else {
                 throw new Error('WebSocket 發送失敗');
@@ -1121,9 +1136,9 @@
     FeedbackApp.prototype.clearFeedback = function() {
         console.log('🧹 清空回饋內容...');
 
-        // 使用 UI 管理器重置表單
+        // 使用 UI 管理器重置表單，並清空文字
         if (this.uiManager) {
-            this.uiManager.resetFeedbackForm();
+            this.uiManager.resetFeedbackForm(true);  // 傳入 true 表示要清空文字
         }
 
         // 清空圖片數據
@@ -1132,6 +1147,57 @@
         }
 
         console.log('✅ 回饋內容清空完成');
+    };
+
+    /**
+     * 複製用戶回饋內容
+     */
+    FeedbackApp.prototype.copyUserFeedback = function() {
+        console.log('📋 複製用戶回饋內容...');
+
+        const feedbackInput = window.MCPFeedback.Utils.safeQuerySelector('#combinedFeedbackText');
+        if (!feedbackInput || !feedbackInput.value.trim()) {
+            window.MCPFeedback.Utils.showMessage(
+                window.i18nManager ? window.i18nManager.t('feedback.noContent') : '沒有可複製的內容',
+                window.MCPFeedback.Utils.CONSTANTS.MESSAGE_WARNING
+            );
+            return;
+        }
+
+        const textContent = feedbackInput.value;
+
+        // 複製到剪貼板
+        navigator.clipboard.writeText(textContent)
+            .then(function() {
+                console.log('✅ 內容已複製到剪貼板');
+                window.MCPFeedback.Utils.showMessage(
+                    window.i18nManager ? window.i18nManager.t('feedback.copySuccess') : '內容已複製到剪貼板',
+                    window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS
+                );
+            })
+            .catch(function(err) {
+                console.error('❌ 複製失敗:', err);
+                // 降級方案：使用舊的複製方法
+                const textarea = document.createElement('textarea');
+                textarea.value = textContent;
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-999999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    window.MCPFeedback.Utils.showMessage(
+                        window.i18nManager ? window.i18nManager.t('feedback.copySuccess') : '內容已複製到剪貼板',
+                        window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS
+                    );
+                } catch (error) {
+                    window.MCPFeedback.Utils.showMessage(
+                        window.i18nManager ? window.i18nManager.t('feedback.copyFailed') : '複製失敗',
+                        window.MCPFeedback.Utils.CONSTANTS.MESSAGE_ERROR
+                    );
+                }
+                document.body.removeChild(textarea);
+            });
     };
 
     /**
@@ -1298,7 +1364,7 @@
                 if (self.uiManager) {
                     // console.log('🔧 準備更新 AI 摘要內容，summary 長度:', sessionData.summary ? sessionData.summary.length : 'undefined');
                     self.uiManager.updateAISummaryContent(sessionData.summary);
-                    self.uiManager.resetFeedbackForm();
+                    self.uiManager.resetFeedbackForm(false);  // 不清空文字內容
                     self.uiManager.updateStatusIndicator();
                 }
 

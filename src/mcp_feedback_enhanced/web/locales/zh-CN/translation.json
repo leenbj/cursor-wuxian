@@ -47,7 +47,10 @@
         "processingFeedback": "正在处理中，请稍候",
         "connectingMessage": "WebSocket 连接中，反馈将在连接就绪后自动提交...",
         "invalidState": "当前状态不允许提交",
-        "sendFailed": "发送失败，请重试"
+        "sendFailed": "发送失败，请重试",
+        "noContent": "没有可复制的内容",
+        "copySuccess": "内容已复制到剪贴板",
+        "copyFailed": "复制失败"
     },
     "summary": {
         "title": "📋 AI 工作摘要",
@@ -380,6 +383,7 @@
     },
     "about": {
         "title": "ℹ️ 关于",
+        "description": "一个强大的 MCP 服务器，为 AI 辅助开发工具提供人在回路的互动反馈功能。支持 Web UI 界面，并具备图片上传、命令执行、多语言等丰富功能。",
         "appInfo": "应用程序信息",
         "version": "版本",
         "projectLinks": "项目链接",
@@ -463,5 +467,8 @@
             "testPlaying": "正在播放测试音效",
             "audioNotFound": "找不到选择的音效"
         }
+    },
+    "stats": {
+        "detailedStats": "详细统计信息"
     }
 }
