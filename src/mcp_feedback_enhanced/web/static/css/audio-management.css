@@ -8,44 +8,15 @@
 
 /* ===== 音效管理區塊樣式 ===== */
 
-.audio-management-section {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    transition: all 0.3s ease;
-}
-
-.audio-management-section:hover {
-    border-color: var(--accent-color);
-    box-shadow: 0 2px 8px rgba(0, 122, 204, 0.1);
-}
-
-.audio-management-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.audio-management-title {
-    color: var(--text-primary);
-    font-size: 16px;
-    font-weight: 600;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+/* 音效描述文字 */
 
 .audio-management-description {
     color: var(--text-secondary);
     font-size: 14px;
     margin-bottom: 20px;
     line-height: 1.4;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 /* ===== 音效設定控制項樣式 ===== */

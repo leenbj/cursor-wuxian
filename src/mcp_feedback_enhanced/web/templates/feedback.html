@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="/static/css/session-management.css">
     <link rel="stylesheet" href="/static/css/prompt-management.css">
     <link rel="stylesheet" href="/static/css/audio-management.css">
+    <link rel="stylesheet" href="/static/css/notification-settings.css">
     <style>
         /* 僅保留必要的頁面特定樣式和響應式調整 */
 
@@ -821,13 +822,20 @@
                     </div>
                 </div>
 
-                <!-- 音效通知設定卡片 -->
+                <!-- 音效通知設定 -->
+                <div id="audioManagementContainer">
+                    <!-- 音效管理 UI 將在這裡動態生成 -->
+                </div>
+
+                <!-- 瀏覽器通知設定卡片 -->
                 <div class="settings-card">
                     <div class="settings-card-header">
-                        <h3 class="settings-card-title" data-i18n="audio.notification.title">🔊 音效通知設定</h3>
+                        <h3 class="settings-card-title">
+                            <span data-i18n="notification.title">🔔 瀏覽器通知</span>
+                        </h3>
                     </div>
-                    <div class="settings-card-body" id="audioManagementContainer">
-                        <!-- 音效管理 UI 將在這裡動態生成 -->
+                    <div class="settings-card-body" id="notificationSettingsContainer">
+                        <!-- 通知設定 UI 將在這裡動態生成 -->
                     </div>
                 </div>
 
@@ -1051,6 +1059,10 @@
     <!-- 音效管理模組 -->
     <script src="/static/js/modules/audio/audio-manager.js?v=2025010510"></script>
     <script src="/static/js/modules/audio/audio-settings-ui.js?v=2025010510"></script>
+
+    <!-- 通知模組 -->
+    <script src="/static/js/modules/notification/notification-manager.js?v=2025010510"></script>
+    <script src="/static/js/modules/notification/notification-settings.js?v=2025010510"></script>
 
     <!-- 其他模組 -->
     <script src="/static/js/modules/utils.js?v=2025010510"></script>

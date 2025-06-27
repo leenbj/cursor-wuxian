@@ -471,5 +471,42 @@
             "testPlaying": "Playing test audio",
             "audioNotFound": "Selected audio not found"
         }
+    },
+    "notification": {
+        "title": "Browser Notifications",
+        "settingLabel": "Browser Notifications",
+        "description": "Get notified when new sessions are created (only when in background)",
+        "enabled": "Notifications enabled ✅",
+        "disabled": "Notifications disabled",
+        "permissionRequired": "Notification permission required to enable this feature",
+        "permissionDenied": "Browser has blocked notifications, please allow in browser settings",
+        "permissionGranted": "Granted",
+        "permissionDeniedStatus": "Denied (please modify in browser settings)",
+        "permissionDefault": "Not set",
+        "notSupported": "Your browser does not support notifications",
+        "enableFailed": "Failed to enable notifications",
+        "test": "Send test notification",
+        "testTitle": "Test Notification",
+        "testDescription": "Send a test notification to confirm it's working",
+        "autoplayBlocked": "Browser blocked autoplay, please click the page to enable audio notifications",
+        "triggerTitle": "Notification Trigger Context",
+        "triggerDescription": "Choose when to receive notifications",
+        "triggerModeUpdated": "Notification trigger mode updated",
+        "trigger": {
+            "focusLost": "When window loses focus (switching to other apps)",
+            "tabSwitch": "When switching to other browser tabs",
+            "background": "When window is minimized or hidden",
+            "always": "Always notify (including foreground)"
+        },
+        "browser": {
+            "title": "MCP Feedback - New Session",
+            "ready": "Ready",
+            "unknownProject": "Unknown Project",
+            "testTitle": "Test Notification",
+            "testBody": "This is a test notification, it will close automatically in 5 seconds",
+            "notSupported": "Your browser does not support notifications",
+            "permissionRequired": "Please grant notification permission first",
+            "criticalTitle": "MCP Feedback - Warning"
+        }
     }
 }

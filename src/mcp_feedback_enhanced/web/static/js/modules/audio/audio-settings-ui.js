@@ -70,17 +70,18 @@
      */
     AudioSettingsUI.prototype.createUI = function() {
         const html = `
-            <div class="audio-management-section">
-                <div class="audio-management-header">
-                    <h4 class="audio-management-title" data-i18n="audio.notification.title">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <h3 class="settings-card-title" data-i18n="audio.notification.title">
                         🔊 音效通知設定
-                    </h4>
+                    </h3>
                 </div>
-                <div class="audio-management-description" data-i18n="audio.notification.description">
-                    設定會話更新時的音效通知
-                </div>
-                
-                <div class="audio-settings-controls">
+                <div class="settings-card-body">
+                    <div class="audio-management-description" data-i18n="audio.notification.description">
+                        設定會話更新時的音效通知
+                    </div>
+                    
+                    <div class="audio-settings-controls">
                     <!-- 啟用開關 -->
                     <div class="setting-item">
                         <div class="setting-info">
@@ -141,6 +142,7 @@
                             <!-- 自訂音效列表將在這裡動態生成 -->
                         </div>
                     </div>
+                </div>
                 </div>
             </div>
         `;

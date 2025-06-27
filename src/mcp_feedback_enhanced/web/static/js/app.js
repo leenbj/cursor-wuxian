@@ -42,6 +42,10 @@
         this.audioManager = null;
         this.audioSettingsUI = null;
 
+        // 通知管理器
+        this.notificationManager = null;
+        this.notificationSettings = null;
+
         // 自動提交管理器
         this.autoSubmitManager = null;
 
@@ -239,25 +243,28 @@
                         // 10. 初始化音效管理器
                         self.initializeAudioManagers();
 
-                        // 11. 初始化自動提交管理器
+                        // 11. 初始化通知管理器
+                        self.initializeNotificationManager();
+
+                        // 12. 初始化自動提交管理器
                         self.initializeAutoSubmitManager();
 
-                        // 12. 初始化 Textarea 高度管理器
+                        // 13. 初始化 Textarea 高度管理器
                         self.initializeTextareaHeightManager();
 
-                        // 13. 應用設定到 UI
+                        // 14. 應用設定到 UI
                         self.settingsManager.applyToUI();
 
-                        // 14. 初始化各個管理器
+                        // 15. 初始化各個管理器
                         self.uiManager.initTabs();
                         self.imageHandler.init();
 
-                        // 15. 檢查並啟動自動提交（如果條件滿足）
+                        // 16. 檢查並啟動自動提交（如果條件滿足）
                         setTimeout(function() {
                             self.checkAndStartAutoSubmit();
                         }, 500); // 延遲 500ms 確保所有初始化完成
 
-                        // 16. 播放啟動音效（如果音效已啟用）
+                        // 17. 播放啟動音效（如果音效已啟用）
                         setTimeout(function() {
                             if (self.audioManager) {
                                 self.audioManager.playStartupNotification();
@@ -524,6 +531,52 @@
     };
 
     /**
+     * 初始化通知管理器
+     */
+    FeedbackApp.prototype.initializeNotificationManager = function() {
+        console.log('🔔 初始化通知管理器...');
+
+        try {
+            // 檢查通知模組是否已載入
+            if (!window.MCPFeedback.NotificationManager) {
+                console.warn('⚠️ 通知模組未載入，跳過初始化');
+                return;
+            }
+
+            // 1. 初始化通知管理器
+            this.notificationManager = new window.MCPFeedback.NotificationManager({
+                t: window.i18nManager ? window.i18nManager.t.bind(window.i18nManager) : function(key, defaultValue) { return defaultValue || key; }
+            });
+            this.notificationManager.initialize();
+
+            // 2. 初始化通知設定 UI
+            if (window.MCPFeedback.NotificationSettings) {
+                const notificationContainer = document.querySelector('#notificationSettingsContainer');
+                console.log('🔍 通知設定容器:', notificationContainer);
+                
+                if (notificationContainer) {
+                    this.notificationSettings = new window.MCPFeedback.NotificationSettings({
+                        container: notificationContainer,
+                        notificationManager: this.notificationManager,
+                        t: window.i18nManager ? window.i18nManager.t.bind(window.i18nManager) : function(key, defaultValue) { return defaultValue || key; }
+                    });
+                    this.notificationSettings.initialize();
+                    console.log('✅ 通知設定 UI 初始化完成');
+                } else {
+                    console.error('❌ 找不到通知設定容器元素 notificationSettingsContainer');
+                }
+            } else {
+                console.warn('⚠️ NotificationSettings 模組未載入');
+            }
+
+            console.log('✅ 通知管理器初始化完成');
+
+        } catch (error) {
+            console.error('❌ 通知管理器初始化失敗:', error);
+        }
+    };
+
+    /**
      * 初始化 Textarea 高度管理器
      */
     FeedbackApp.prototype.initializeTextareaHeightManager = function() {
@@ -718,6 +771,14 @@
             // 播放音效通知
             if (this.audioManager) {
                 this.audioManager.playNotification();
+            }
+
+            // 發送瀏覽器通知
+            if (this.notificationManager && data.session_info) {
+                this.notificationManager.notifyNewSession(
+                    data.session_info.session_id,
+                    data.session_info.project_directory || data.project_directory || '未知專案'
+                );
             }
 
             // 顯示新會話通知

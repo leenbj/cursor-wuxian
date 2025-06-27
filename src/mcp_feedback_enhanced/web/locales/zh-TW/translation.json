@@ -475,5 +475,42 @@
     },
     "stats": {
         "detailedStats": "詳細統計資訊"
+    },
+    "notification": {
+        "title": "瀏覽器通知",
+        "settingLabel": "瀏覽器通知",
+        "description": "新會話建立時通知（僅在背景執行時）",
+        "enabled": "通知已啟用 ✅",
+        "disabled": "通知已關閉",
+        "permissionRequired": "需要通知權限才能啟用此功能",
+        "permissionDenied": "瀏覽器已封鎖通知，請在瀏覽器設定中允許",
+        "permissionGranted": "已授權",
+        "permissionDeniedStatus": "已拒絕（請在瀏覽器設定中修改）",
+        "permissionDefault": "尚未設定",
+        "notSupported": "您的瀏覽器不支援通知功能",
+        "enableFailed": "啟用通知失敗",
+        "test": "發送測試通知",
+        "testTitle": "測試通知",
+        "testDescription": "發送測試通知以確認功能正常",
+        "autoplayBlocked": "瀏覽器阻止音效自動播放，請點擊頁面以啟用音效通知",
+        "triggerTitle": "通知觸發情境",
+        "triggerDescription": "選擇何時接收通知",
+        "triggerModeUpdated": "通知觸發模式已更新",
+        "trigger": {
+            "focusLost": "視窗失去焦點時（切換到其他應用程式）",
+            "tabSwitch": "切換到其他標籤頁時",
+            "background": "視窗最小化或隱藏時",
+            "always": "總是通知（包括前景）"
+        },
+        "browser": {
+            "title": "MCP Feedback - 新會話",
+            "ready": "準備就緒",
+            "unknownProject": "未知專案",
+            "testTitle": "測試通知",
+            "testBody": "這是一個測試通知，5秒後將自動關閉",
+            "notSupported": "您的瀏覽器不支援通知功能",
+            "permissionRequired": "請先授權通知權限",
+            "criticalTitle": "MCP Feedback - 警告"
+        }
     }
 }
