@@ -672,6 +672,17 @@ async def handle_websocket_message(manager: "WebUIManager", session, data: dict)
         debug_log(f"收到 pong 回應，時間戳: {data.get('timestamp', 'N/A')}")
         # 可以在這裡記錄延遲或更新連接狀態
 
+    elif message_type == "update_timeout_settings":
+        # 處理超時設定更新
+        settings = data.get("settings", {})
+        debug_log(f"收到超時設定更新: {settings}")
+        if settings.get("enabled"):
+            session.update_timeout_settings(
+                enabled=True, timeout_seconds=settings.get("seconds", 3600)
+            )
+        else:
+            session.update_timeout_settings(enabled=False)
+
     else:
         debug_log(f"未知的消息類型: {message_type}")
 

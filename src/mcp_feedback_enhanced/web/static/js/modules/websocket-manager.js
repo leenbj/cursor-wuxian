@@ -47,6 +47,15 @@
         // 網路狀態檢測
         this.networkOnline = navigator.onLine;
         this.setupNetworkStatusDetection();
+        
+        // 會話超時計時器
+        this.sessionTimeoutTimer = null;
+        this.sessionTimeoutInterval = null; // 用於更新倒數顯示
+        this.sessionTimeoutRemaining = 0; // 剩餘秒數
+        this.sessionTimeoutSettings = {
+            enabled: false,
+            seconds: 3600
+        };
     }
 
     /**
@@ -285,6 +294,12 @@
                     timestamp: data.timestamp
                 });
                 break;
+            case 'update_timeout_settings':
+                // 處理超時設定更新
+                if (data.settings) {
+                    this.updateSessionTimeoutSettings(data.settings);
+                }
+                break;
             default:
                 // 其他訊息類型由外部處理
                 break;
@@ -462,10 +477,138 @@
     };
 
     /**
+     * 更新會話超時設定
+     */
+    WebSocketManager.prototype.updateSessionTimeoutSettings = function(settings) {
+        this.sessionTimeoutSettings = settings;
+        console.log('會話超時設定已更新:', settings);
+        
+        // 重新啟動計時器
+        if (settings.enabled) {
+            this.startSessionTimeout();
+        } else {
+            this.stopSessionTimeout();
+        }
+    };
+
+    /**
+     * 啟動會話超時計時器
+     */
+    WebSocketManager.prototype.startSessionTimeout = function() {
+        // 先停止現有計時器
+        this.stopSessionTimeout();
+        
+        if (!this.sessionTimeoutSettings.enabled) {
+            return;
+        }
+        
+        const timeoutSeconds = this.sessionTimeoutSettings.seconds;
+        this.sessionTimeoutRemaining = timeoutSeconds;
+        
+        console.log('啟動會話超時計時器:', timeoutSeconds, '秒');
+        
+        // 顯示倒數計時器
+        const displayElement = document.getElementById('sessionTimeoutDisplay');
+        if (displayElement) {
+            displayElement.style.display = '';
+        }
+        
+        const self = this;
+        
+        // 更新倒數顯示
+        function updateDisplay() {
+            const minutes = Math.floor(self.sessionTimeoutRemaining / 60);
+            const seconds = self.sessionTimeoutRemaining % 60;
+            const displayText = minutes.toString().padStart(2, '0') + ':' + 
+                               seconds.toString().padStart(2, '0');
+            
+            const timerElement = document.getElementById('sessionTimeoutTimer');
+            if (timerElement) {
+                timerElement.textContent = displayText;
+            }
+            
+            // 當剩餘時間少於60秒時，改變顯示樣式
+            if (self.sessionTimeoutRemaining < 60 && displayElement) {
+                displayElement.classList.add('countdown-warning');
+            }
+        }
+        
+        // 立即更新一次顯示
+        updateDisplay();
+        
+        // 每秒更新倒數
+        this.sessionTimeoutInterval = setInterval(function() {
+            self.sessionTimeoutRemaining--;
+            updateDisplay();
+            
+            if (self.sessionTimeoutRemaining <= 0) {
+                clearInterval(self.sessionTimeoutInterval);
+                self.sessionTimeoutInterval = null;
+                
+                console.log('會話超時，準備關閉程序');
+                
+                // 發送超時通知給後端
+                if (self.isConnected) {
+                    self.send({
+                        type: 'user_timeout',
+                        timestamp: Date.now()
+                    });
+                }
+                
+                // 顯示超時訊息
+                const timeoutMessage = window.i18nManager ?
+                    window.i18nManager.t('sessionTimeout.triggered', '會話已超時，程序即將關閉') :
+                    '會話已超時，程序即將關閉';
+                Utils.showMessage(timeoutMessage, Utils.CONSTANTS.MESSAGE_WARNING);
+                
+                // 延遲關閉，讓用戶看到訊息
+                setTimeout(function() {
+                    window.close();
+                }, 3000);
+            }
+        }, 1000);
+    };
+
+    /**
+     * 停止會話超時計時器
+     */
+    WebSocketManager.prototype.stopSessionTimeout = function() {
+        if (this.sessionTimeoutTimer) {
+            clearTimeout(this.sessionTimeoutTimer);
+            this.sessionTimeoutTimer = null;
+        }
+        
+        if (this.sessionTimeoutInterval) {
+            clearInterval(this.sessionTimeoutInterval);
+            this.sessionTimeoutInterval = null;
+        }
+        
+        // 隱藏倒數顯示
+        const displayElement = document.getElementById('sessionTimeoutDisplay');
+        if (displayElement) {
+            displayElement.style.display = 'none';
+            displayElement.classList.remove('countdown-warning');
+        }
+        
+        console.log('會話超時計時器已停止');
+    };
+
+    /**
+     * 重置會話超時計時器（用戶有活動時調用）
+     */
+    WebSocketManager.prototype.resetSessionTimeout = function() {
+        if (this.sessionTimeoutSettings.enabled) {
+            console.log('重置會話超時計時器');
+            this.startSessionTimeout();
+        }
+    };
+
+    /**
      * 關閉連接
      */
     WebSocketManager.prototype.close = function() {
         this.stopHeartbeat();
+        this.stopSessionTimeout();
         if (this.websocket) {
             this.websocket.close();
             this.websocket = null;

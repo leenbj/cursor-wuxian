@@ -168,6 +168,11 @@ class WebFeedbackSession:
         # 新增：活躍標籤頁管理
         self.active_tabs: dict[str, Any] = {}
 
+        # 新增：用戶設定的會話超時
+        self.user_timeout_enabled = False
+        self.user_timeout_seconds = 3600  # 預設 1 小時
+        self.user_timeout_timer: threading.Timer | None = None
+
         # 確保臨時目錄存在
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -421,6 +426,39 @@ class WebFeedbackSession:
         )
         return stats
 
+    def update_timeout_settings(self, enabled: bool, timeout_seconds: int = 3600):
+        """
+        更新用戶設定的會話超時
+
+        Args:
+            enabled: 是否啟用超時
+            timeout_seconds: 超時秒數
+        """
+        debug_log(f"更新會話超時設定: enabled={enabled}, seconds={timeout_seconds}")
+
+        # 先停止現有的計時器
+        if self.user_timeout_timer:
+            self.user_timeout_timer.cancel()
+            self.user_timeout_timer = None
+
+        self.user_timeout_enabled = enabled
+        self.user_timeout_seconds = timeout_seconds
+
+        # 如果啟用且會話還在等待中，啟動計時器
+        if enabled and self.status == SessionStatus.WAITING:
+
+            def timeout_handler():
+                debug_log(f"用戶設定的超時已到: {self.session_id}")
+                # 設置超時標誌
+                self.status = SessionStatus.TIMEOUT
+                self.status_message = "用戶設定的會話超時"
+                # 設置完成事件，讓 wait_for_feedback 結束等待
+                self.feedback_completed.set()
+
+            self.user_timeout_timer = threading.Timer(timeout_seconds, timeout_handler)
+            self.user_timeout_timer.start()
+            debug_log(f"已啟動用戶超時計時器: {timeout_seconds}秒")
+
     async def wait_for_feedback(self, timeout: int = 600) -> dict[str, Any]:
         """
         等待用戶回饋，包含圖片，支援超時自動清理
@@ -450,6 +488,12 @@ class WebFeedbackSession:
             completed = await loop.run_in_executor(None, wait_in_thread)
 
             if completed:
+                # 檢查是否是用戶設定的超時
+                if self.status == SessionStatus.TIMEOUT and self.user_timeout_enabled:
+                    debug_log(f"會話 {self.session_id} 因用戶設定超時而結束")
+                    await self._cleanup_resources_on_timeout()
+                    raise TimeoutError("會話已因用戶設定的超時而關閉")
+
                 debug_log(f"會話 {self.session_id} 收到用戶回饋")
                 return {
                     "logs": "\n".join(self.command_logs),
@@ -751,6 +795,12 @@ class WebFeedbackSession:
             if self.cleanup_timer:
                 self.cleanup_timer.cancel()
                 self.cleanup_timer = None
+                resources_cleaned += 1
+
+            # 1.5. 取消用戶超時計時器
+            if self.user_timeout_timer:
+                self.user_timeout_timer.cancel()
+                self.user_timeout_timer = None
                 resources_cleaned += 1
 
             # 2. 關閉 WebSocket 連接

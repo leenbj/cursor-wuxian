@@ -429,9 +429,10 @@
         </div>
 
         <!-- 倒數計時器（條件顯示） -->
-        <div id="countdownDisplay" class="countdown-display-compact" style="display: none;">
+        <div id="countdownDisplay" class="countdown-display-compact auto-submit-display" style="display: none;">
             <span class="info-separator">·</span>
             <span>⏱️</span>
+            <span class="countdown-label" data-i18n="autoSubmit.countdownLabel">提交倒數:</span>
             <span id="countdownTimer" class="countdown-timer">--:--</span>
             <button id="countdownPauseBtn" class="countdown-control-btn"
                     data-i18n-title="autoSubmit.pauseCountdown"
@@ -440,6 +441,14 @@
                 <span class="pause-icon">⏸</span>
                 <span class="resume-icon" style="display: none;">▶</span>
             </button>
+        </div>
+
+        <!-- 會話超時倒數（條件顯示） -->
+        <div id="sessionTimeoutDisplay" class="countdown-display-compact session-timeout-display" style="display: none;">
+            <span class="info-separator">·</span>
+            <span>⏰</span>
+            <span class="timeout-label" data-i18n="sessionTimeout.label">會話超時:</span>
+            <span id="sessionTimeoutTimer" class="countdown-timer">--:--</span>
         </div>
 
         <!-- 分隔符 -->
@@ -867,6 +876,43 @@
                     </div>
                     <div class="settings-card-body" id="notificationSettingsContainer">
                         <!-- 通知設定 UI 將在這裡動態生成 -->
+                    </div>
+                </div>
+
+                <!-- 會話超時設定卡片 -->
+                <div class="settings-card">
+                    <div class="settings-card-header">
+                        <h3 class="settings-card-title" data-i18n="settingsUI.sessionTimeoutTitle">⏱️ 會話超時設定</h3>
+                    </div>
+                    <div class="settings-card-body">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label" data-i18n="settingsUI.sessionTimeoutEnable">啟用會話超時</div>
+                                <div class="setting-description" data-i18n="settingsUI.sessionTimeoutEnableDesc">
+                                    啟用後，會話將在指定時間後自動關閉
+                                </div>
+                            </div>
+                            <div class="setting-control">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sessionTimeoutEnabled" class="toggle-input">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-label" data-i18n="settingsUI.sessionTimeoutDuration">超時時間（秒）</div>
+                                <div class="setting-description" data-i18n="settingsUI.sessionTimeoutDurationDesc">
+                                    設定會話超時時間，範圍：300-86400 秒（5分鐘-24小時）
+                                </div>
+                            </div>
+                            <div class="setting-control">
+                                <input type="number" id="sessionTimeoutSeconds" min="300" max="86400" value="3600"
+                                       class="form-input" style="width: 120px;">
+                                <span class="input-suffix" data-i18n="settingsUI.sessionTimeoutSeconds">秒</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

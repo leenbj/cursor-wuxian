@@ -122,7 +122,13 @@
         "resetError": "Error occurred while resetting settings",
         "timeout": "Connection Timeout (seconds)",
         "autorefresh": "Auto Refresh",
-        "debug": "Debug Mode"
+        "debug": "Debug Mode",
+        "sessionTimeoutTitle": "⏱️ Session Timeout Settings",
+        "sessionTimeoutEnable": "Enable Session Timeout",
+        "sessionTimeoutEnableDesc": "When enabled, the session will automatically close after the specified time",
+        "sessionTimeoutDuration": "Timeout Duration (seconds)",
+        "sessionTimeoutDurationDesc": "Set session timeout duration, range: 300-86400 seconds (5 minutes - 24 hours)",
+        "sessionTimeoutSeconds": "seconds"
     },
     "languages": {
         "zh-TW": "繁體中文",
@@ -200,7 +206,8 @@
         "timeout": "⏰ Session has timed out, interface will close automatically",
         "timeoutWarning": "Session is about to timeout",
         "timeoutDescription": "Due to prolonged inactivity, the session has timed out. The interface will automatically close in 3 seconds.",
-        "closing": "Closing..."
+        "closing": "Closing...",
+        "label": "Session Timeout:"
     },
     "autoRefresh": {
         "enable": "Auto Detect",

@@ -50,7 +50,10 @@
             userMessageRecordingEnabled: true,
             userMessagePrivacyLevel: 'full', // 'full', 'basic', 'disabled'
             // UI 元素尺寸設定
-            combinedFeedbackTextHeight: 150 // combinedFeedbackText textarea 的高度（px）
+            combinedFeedbackTextHeight: 150, // combinedFeedbackText textarea 的高度（px）
+            // 會話超時設定
+            sessionTimeoutEnabled: false,  // 預設關閉
+            sessionTimeoutSeconds: 3600    // 預設 1 小時（秒）
         };
         
         // 當前設定
@@ -417,6 +420,9 @@
 
         // 應用用戶訊息記錄設定
         this.applyUserMessageSettings();
+        
+        // 應用會話超時設定
+        this.applySessionTimeoutSettings();
     };
 
     /**
@@ -597,6 +603,28 @@
 
         // 更新隱私等級描述
         this.updatePrivacyLevelDescription(this.currentSettings.userMessagePrivacyLevel);
+    };
+
+    /**
+     * 應用會話超時設定
+     */
+    SettingsManager.prototype.applySessionTimeoutSettings = function() {
+        // 更新會話超時啟用開關
+        const sessionTimeoutEnabled = Utils.safeQuerySelector('#sessionTimeoutEnabled');
+        if (sessionTimeoutEnabled) {
+            sessionTimeoutEnabled.checked = this.currentSettings.sessionTimeoutEnabled;
+        }
+
+        // 更新會話超時時間輸入框
+        const sessionTimeoutSeconds = Utils.safeQuerySelector('#sessionTimeoutSeconds');
+        if (sessionTimeoutSeconds) {
+            sessionTimeoutSeconds.value = this.currentSettings.sessionTimeoutSeconds;
+        }
+
+        console.log('會話超時設定已應用到 UI:', {
+            enabled: this.currentSettings.sessionTimeoutEnabled,
+            seconds: this.currentSettings.sessionTimeoutSeconds
+        });
     };
 
     /**
@@ -893,6 +921,59 @@
                 self.set('userMessagePrivacyLevel', privacyLevel);
                 self.updatePrivacyLevelDescription(privacyLevel);
                 console.log('用戶訊息隱私等級已更新:', privacyLevel);
+            });
+        }
+
+        // 會話超時啟用開關
+        const sessionTimeoutEnabled = Utils.safeQuerySelector('#sessionTimeoutEnabled');
+        if (sessionTimeoutEnabled) {
+            sessionTimeoutEnabled.addEventListener('change', function() {
+                const newValue = sessionTimeoutEnabled.checked;
+                self.set('sessionTimeoutEnabled', newValue);
+                console.log('會話超時狀態已更新:', newValue);
+                
+                // 觸發 WebSocket 通知後端更新超時設定
+                if (window.MCPFeedback && window.MCPFeedback.app && window.MCPFeedback.app.webSocketManager) {
+                    window.MCPFeedback.app.webSocketManager.send({
+                        type: 'update_timeout_settings',
+                        settings: {
+                            enabled: newValue,
+                            seconds: self.get('sessionTimeoutSeconds')
+                        }
+                    });
+                }
+            });
+        }
+
+        // 會話超時時間設定
+        const sessionTimeoutSeconds = Utils.safeQuerySelector('#sessionTimeoutSeconds');
+        if (sessionTimeoutSeconds) {
+            sessionTimeoutSeconds.addEventListener('change', function(e) {
+                const seconds = parseInt(e.target.value);
+                
+                // 驗證輸入值範圍
+                if (isNaN(seconds) || seconds < 300) {
+                    e.target.value = 300;
+                    self.set('sessionTimeoutSeconds', 300);
+                } else if (seconds > 86400) {
+                    e.target.value = 86400;
+                    self.set('sessionTimeoutSeconds', 86400);
+                } else {
+                    self.set('sessionTimeoutSeconds', seconds);
+                }
+                
+                console.log('會話超時時間已更新:', self.get('sessionTimeoutSeconds'), '秒');
+                
+                // 觸發 WebSocket 通知後端更新超時設定
+                if (window.MCPFeedback && window.MCPFeedback.app && window.MCPFeedback.app.webSocketManager) {
+                    window.MCPFeedback.app.webSocketManager.send({
+                        type: 'update_timeout_settings',
+                        settings: {
+                            enabled: self.get('sessionTimeoutEnabled'),
+                            seconds: self.get('sessionTimeoutSeconds')
+                        }
+                    });
+                }
             });
         }
 

@@ -123,7 +123,13 @@
         "timeout": "连线逾时 (秒)",
         "autorefresh": "自动重新整理",
         "debug": "除错模式",
-        "autoCommitNoPrompt": "请先选择一个提示词作为自动提交内容"
+        "autoCommitNoPrompt": "请先选择一个提示词作为自动提交内容",
+        "sessionTimeoutTitle": "⏱️ 会话超时设置",
+        "sessionTimeoutEnable": "启用会话超时",
+        "sessionTimeoutEnableDesc": "启用后，会话将在指定时间后自动关闭",
+        "sessionTimeoutDuration": "超时时间（秒）",
+        "sessionTimeoutDurationDesc": "设置会话超时时间，范围：300-86400 秒（5分钟-24小时）",
+        "sessionTimeoutSeconds": "秒"
     },
     "languages": {
         "zh-TW": "繁體中文",
@@ -201,7 +207,8 @@
         "timeout": "⏰ 会话已超时，界面将自动关闭",
         "timeoutWarning": "会话即将超时",
         "timeoutDescription": "由于长时间无响应，会话已超时。界面将在 3 秒后自动关闭。",
-        "closing": "正在关闭..."
+        "closing": "正在关闭...",
+        "label": "会话超时:"
     },
     "autoRefresh": {
         "enable": "自动检测",

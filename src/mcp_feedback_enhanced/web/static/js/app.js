@@ -271,7 +271,16 @@
                             }
                         }, 800); // 延遲 800ms 確保所有初始化完成且避免與其他音效衝突
 
-                        // 17. 建立 WebSocket 連接
+                        // 17. 初始化會話超時設定
+                        if (self.settingsManager.get('sessionTimeoutEnabled')) {
+                            const timeoutSettings = {
+                                enabled: self.settingsManager.get('sessionTimeoutEnabled'),
+                                seconds: self.settingsManager.get('sessionTimeoutSeconds')
+                            };
+                            self.webSocketManager.updateSessionTimeoutSettings(timeoutSettings);
+                        }
+
+                        // 18. 建立 WebSocket 連接
                         self.webSocketManager.connect();
 
                         resolve();
@@ -360,6 +369,9 @@
 
             // 設置設定管理器的事件監聽器
             self.settingsManager.setupEventListeners();
+
+            // 設置用戶活動監聽（用於重置會話超時）
+            self.setupUserActivityListeners();
 
             console.log('✅ 事件監聽器設置完成');
             resolve();
@@ -836,13 +848,20 @@
 
                 // 4. 重置回饋狀態為等待中
                 if (self.uiManager) {
-                    self.uiManager.setFeedbackState(
-                        window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING,
-                        self.currentSessionId
-                    );
+                    self.uiManager.setFeedbackState(window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING, self.currentSessionId);
+                }
+                
+                // 5. 重新啟動會話超時計時器（如果已啟用）
+                if (self.settingsManager && self.settingsManager.get('sessionTimeoutEnabled')) {
+                    console.log('🔄 新會話創建，重新啟動會話超時計時器');
+                    const timeoutSettings = {
+                        enabled: self.settingsManager.get('sessionTimeoutEnabled'),
+                        seconds: self.settingsManager.get('sessionTimeoutSeconds')
+                    };
+                    self.webSocketManager.updateSessionTimeoutSettings(timeoutSettings);
                 }
 
-                // 5. 檢查並啟動自動提交
+                // 6. 檢查並啟動自動提交
                 self.checkAndStartAutoSubmit();
 
                 console.log('✅ 局部更新完成，頁面已準備好接收新的回饋');
@@ -1156,6 +1175,12 @@
             if (this.autoSubmitManager && this.autoSubmitManager.isEnabled) {
                 console.log('⏸️ 手動提交反饋，停止自動提交倒數計時器');
                 this.autoSubmitManager.stop();
+            }
+            
+            // 停止會話超時計時器
+            if (this.webSocketManager) {
+                console.log('⏸️ 提交反饋，停止會話超時計時器');
+                this.webSocketManager.stopSessionTimeout();
             }
 
             // 3. 發送回饋到 AI 助手
@@ -1896,6 +1921,30 @@
             pauseBtn.setAttribute('title', pauseTitle);
             pauseBtn.setAttribute('data-i18n-title', 'autoSubmit.pauseCountdown');
         }
+    };
+
+    /**
+     * 設置用戶活動監聽器（用於重置會話超時）
+     */
+    FeedbackApp.prototype.setupUserActivityListeners = function() {
+        const self = this;
+        
+        // 定義需要監聽的活動事件
+        const activityEvents = ['click', 'keypress', 'mousemove', 'touchstart', 'scroll'];
+        
+        // 防抖處理，避免過於頻繁地重置計時器
+        const resetTimeout = window.MCPFeedback.Utils.DOM.debounce(function() {
+            if (self.webSocketManager) {
+                self.webSocketManager.resetSessionTimeout();
+            }
+        }, 5000, false); // 5秒內的連續活動只重置一次
+        
+        // 為每個事件添加監聽器
+        activityEvents.forEach(function(eventType) {
+            document.addEventListener(eventType, resetTimeout, { passive: true });
+        });
+        
+        console.log('✅ 用戶活動監聽器已設置');
     };
 
     /**
