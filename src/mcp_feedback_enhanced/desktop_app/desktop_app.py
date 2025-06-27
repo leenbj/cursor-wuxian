@@ -68,8 +68,8 @@ class DesktopApp:
             self.web_manager.start_server()
 
         # 等待服務器啟動
-        max_wait = 10  # 最多等待 10 秒
-        wait_count = 0
+        max_wait = 10.0  # 最多等待 10 秒
+        wait_count = 0.0
         while wait_count < max_wait:
             if (
                 self.web_manager.server_thread
@@ -221,7 +221,8 @@ class DesktopApp:
             # Windows 下隱藏控制台視窗
             creation_flags = 0
             if os.name == "nt":
-                creation_flags = subprocess.CREATE_NO_WINDOW
+                # CREATE_NO_WINDOW 只在 Windows 上存在
+                creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
 
             self.app_handle = subprocess.Popen(
                 [str(tauri_exe)],

@@ -182,8 +182,8 @@ class TestWebFeedbackSessionCleanup:
         """測試狀態更新重置定時器"""
         old_timer = self.session.cleanup_timer
 
-        # 更新狀態為活躍
-        self.session.update_status(SessionStatus.ACTIVE, "測試活躍狀態")
+        # 更新狀態為活躍 - 使用 next_step 方法
+        self.session.next_step("測試活躍狀態")
 
         # 檢查定時器是否被重置
         assert self.session.cleanup_timer != old_timer

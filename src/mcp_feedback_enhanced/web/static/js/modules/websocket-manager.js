@@ -269,6 +269,14 @@
                     this.connectionMonitor.recordPong();
                 }
                 break;
+            case 'ping':
+                // 處理來自伺服器的 ping 消息（用於連接檢測）
+                console.log('收到伺服器 ping，立即回應 pong');
+                this.send({
+                    type: 'pong',
+                    timestamp: data.timestamp
+                });
+                break;
             default:
                 // 其他訊息類型由外部處理
                 break;

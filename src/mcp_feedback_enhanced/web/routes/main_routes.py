@@ -176,7 +176,7 @@ def setup_routes(manager: "WebUIManager"):
                     "feedback_completed": session.feedback_completed.is_set(),
                     "has_websocket": session.websocket is not None,
                     "is_current": session == manager.current_session,
-                    "user_messages": session.user_messages  # 包含用戶消息記錄
+                    "user_messages": session.user_messages,  # 包含用戶消息記錄
                 }
                 sessions_data.append(session_info)
 
@@ -189,8 +189,7 @@ def setup_routes(manager: "WebUIManager"):
         except Exception as e:
             debug_log(f"獲取所有會話狀態失敗: {e}")
             return JSONResponse(
-                status_code=500,
-                content={"error": f"獲取會話狀態失敗: {e!s}"}
+                status_code=500, content={"error": f"獲取會話狀態失敗: {e!s}"}
             )
 
     @manager.app.post("/api/add-user-message")
@@ -201,22 +200,20 @@ def setup_routes(manager: "WebUIManager"):
             current_session = manager.get_current_session()
 
             if not current_session:
-                return JSONResponse(
-                    status_code=404,
-                    content={"error": "沒有活躍會話"}
-                )
+                return JSONResponse(status_code=404, content={"error": "沒有活躍會話"})
 
             # 添加用戶消息到會話
             current_session.add_user_message(data)
 
             debug_log(f"用戶消息已添加到會話 {current_session.session_id}")
-            return JSONResponse(content={"status": "success", "message": "用戶消息已記錄"})
+            return JSONResponse(
+                content={"status": "success", "message": "用戶消息已記錄"}
+            )
 
         except Exception as e:
             debug_log(f"添加用戶消息失敗: {e}")
             return JSONResponse(
-                status_code=500,
-                content={"error": f"添加用戶消息失敗: {e!s}"}
+                status_code=500, content={"error": f"添加用戶消息失敗: {e!s}"}
             )
 
     @manager.app.websocket("/ws")
@@ -556,6 +553,10 @@ async def handle_websocket_message(manager: "WebUIManager", session, data: dict)
 
     elif message_type == "heartbeat":
         # WebSocket 心跳處理（簡化版）
+        # 更新心跳時間
+        session.last_heartbeat = time.time()
+        session.last_activity = time.time()
+
         # 發送心跳回應
         if session.websocket:
             try:
@@ -574,6 +575,11 @@ async def handle_websocket_message(manager: "WebUIManager", session, data: dict)
         # 清理會話資源
         await session._cleanup_resources_on_timeout()
         # 重構：不再自動停止服務器，保持服務器運行以支援持久性
+
+    elif message_type == "pong":
+        # 處理來自前端的 pong 回應（用於連接檢測）
+        debug_log(f"收到 pong 回應，時間戳: {data.get('timestamp', 'N/A')}")
+        # 可以在這裡記錄延遲或更新連接狀態
 
     else:
         debug_log(f"未知的消息類型: {message_type}")

@@ -32,9 +32,11 @@ class SessionStatus(Enum):
     """會話狀態枚舉 - 單向流轉設計"""
 
     WAITING = "waiting"  # 等待中
+    ACTIVE = "active"  # 活躍狀態
     FEEDBACK_SUBMITTED = "feedback_submitted"  # 已提交反饋
     COMPLETED = "completed"  # 已完成
     ERROR = "error"  # 錯誤（終態）
+    TIMEOUT = "timeout"  # 超時（終態）
     EXPIRED = "expired"  # 已過期（終態）
 
 
@@ -140,6 +142,7 @@ class WebFeedbackSession:
         # 統一使用 time.time() 以避免時間基準不一致
         self.created_at = time.time()
         self.last_activity = self.created_at
+        self.last_heartbeat = None  # 記錄最後一次心跳時間
 
         # 新增：自動清理配置
         self.auto_cleanup_delay = auto_cleanup_delay  # 自動清理延遲時間（秒）
@@ -179,17 +182,21 @@ class WebFeedbackSession:
 
         # 定義狀態流轉路徑
         next_status_map = {
-            SessionStatus.WAITING: SessionStatus.FEEDBACK_SUBMITTED,
+            SessionStatus.WAITING: SessionStatus.ACTIVE,
+            SessionStatus.ACTIVE: SessionStatus.FEEDBACK_SUBMITTED,
             SessionStatus.FEEDBACK_SUBMITTED: SessionStatus.COMPLETED,
             SessionStatus.COMPLETED: None,  # 終態
-            SessionStatus.ERROR: None,      # 終態
-            SessionStatus.EXPIRED: None     # 終態
+            SessionStatus.ERROR: None,  # 終態
+            SessionStatus.TIMEOUT: None,  # 終態
+            SessionStatus.EXPIRED: None,  # 終態
         }
 
         next_status = next_status_map.get(self.status)
 
         if next_status is None:
-            debug_log(f"⚠️ 會話 {self.session_id} 已處於終態 {self.status.value}，無法進入下一步")
+            debug_log(
+                f"⚠️ 會話 {self.session_id} 已處於終態 {self.status.value}，無法進入下一步"
+            )
             return False
 
         # 執行狀態轉換
@@ -199,8 +206,9 @@ class WebFeedbackSession:
         else:
             # 默認消息
             default_messages = {
+                SessionStatus.ACTIVE: "會話已啟動",
                 SessionStatus.FEEDBACK_SUBMITTED: "用戶已提交反饋",
-                SessionStatus.COMPLETED: "會話已完成"
+                SessionStatus.COMPLETED: "會話已完成",
             }
             self.status_message = default_messages.get(next_status, "狀態已更新")
 
@@ -245,7 +253,12 @@ class WebFeedbackSession:
 
     def is_terminal(self) -> bool:
         """檢查是否處於終態"""
-        return self.status in [SessionStatus.COMPLETED, SessionStatus.ERROR, SessionStatus.EXPIRED]
+        return self.status in [
+            SessionStatus.COMPLETED,
+            SessionStatus.ERROR,
+            SessionStatus.TIMEOUT,
+            SessionStatus.EXPIRED,
+        ]
 
     def get_status_info(self) -> dict[str, Any]:
         """獲取會話狀態信息"""
@@ -508,11 +521,13 @@ class WebFeedbackSession:
             "content": message_data.get("content", ""),
             "images": message_data.get("images", []),
             "submission_method": message_data.get("submission_method", "manual"),
-            "type": "feedback"
+            "type": "feedback",
         }
 
         self.user_messages.append(user_message)
-        debug_log(f"會話 {self.session_id} 添加用戶消息，總數: {len(self.user_messages)}")
+        debug_log(
+            f"會話 {self.session_id} 添加用戶消息，總數: {len(self.user_messages)}"
+        )
 
     def _process_images(self, images: list[dict]) -> list[dict]:
         """

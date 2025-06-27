@@ -331,7 +331,9 @@ class WebUIManager:
 
         # 如果有舊會話，處理狀態轉換和清理
         if old_session:
-            debug_log(f"處理舊會話 {old_session.session_id} 的狀態轉換，當前狀態: {old_session.status.value}")
+            debug_log(
+                f"處理舊會話 {old_session.session_id} 的狀態轉換，當前狀態: {old_session.status.value}"
+            )
 
             # 保存標籤頁狀態到全局
             if hasattr(old_session, "active_tabs"):
@@ -339,14 +341,18 @@ class WebUIManager:
 
             # 如果舊會話是已提交狀態，進入下一步（已完成）
             if old_session.status == SessionStatus.FEEDBACK_SUBMITTED:
-                debug_log(f"舊會話 {old_session.session_id} 進入下一步：已提交 → 已完成")
+                debug_log(
+                    f"舊會話 {old_session.session_id} 進入下一步：已提交 → 已完成"
+                )
                 success = old_session.next_step("反饋已處理，會話完成")
                 if success:
                     debug_log(f"✅ 舊會話 {old_session.session_id} 成功進入已完成狀態")
                 else:
                     debug_log(f"❌ 舊會話 {old_session.session_id} 無法進入下一步")
             else:
-                debug_log(f"舊會話 {old_session.session_id} 狀態為 {old_session.status.value}，無需轉換")
+                debug_log(
+                    f"舊會話 {old_session.session_id} 狀態為 {old_session.status.value}，無需轉換"
+                )
 
             # 確保舊會話仍在字典中（用於API獲取）
             if old_session.session_id in self.sessions:
@@ -689,10 +695,6 @@ class WebUIManager:
         else:
             debug_log("沒有活躍的桌面應用程式實例")
 
-
-
-
-
     async def _safe_close_websocket(self, websocket):
         """安全關閉 WebSocket 連接，避免事件循環衝突 - 僅在連接已轉移後調用"""
         if not websocket:
@@ -736,8 +738,8 @@ class WebUIManager:
                     "session_id": self.current_session.session_id,
                     "project_directory": self.current_session.project_directory,
                     "summary": self.current_session.summary,
-                    "status": self.current_session.status.value
-                }
+                    "status": self.current_session.status.value,
+                },
             }
 
             # 發送刷新通知
@@ -754,26 +756,61 @@ class WebUIManager:
             return False
 
     async def _check_active_tabs(self) -> bool:
-        """檢查是否有活躍標籤頁 - 檢查所有會話的WebSocket連接"""
+        """檢查是否有活躍標籤頁 - 使用分層檢測機制"""
         try:
-            # 檢查當前會話的WebSocket連接
-            if self.current_session and self.current_session.websocket:
-                debug_log("檢測到當前會話的WebSocket連接")
+            # 快速檢測層：檢查 WebSocket 物件是否存在
+            if not self.current_session or not self.current_session.websocket:
+                debug_log("快速檢測：沒有當前會話或 WebSocket 連接")
+                return False
+
+            # 檢查心跳（如果有心跳記錄）
+            last_heartbeat = getattr(self.current_session, "last_heartbeat", None)
+            if last_heartbeat:
+                heartbeat_age = time.time() - last_heartbeat
+                if heartbeat_age > 10:  # 超過 10 秒沒有心跳
+                    debug_log(f"快速檢測：心跳超時 ({heartbeat_age:.1f}秒)")
+                    # 可能連接已死，需要進一步檢測
+                else:
+                    debug_log(f"快速檢測：心跳正常 ({heartbeat_age:.1f}秒前)")
+                    return True  # 心跳正常，認為連接活躍
+
+            # 準確檢測層：實際測試連接是否活著
+            try:
+                # 檢查 WebSocket 連接狀態
+                websocket = self.current_session.websocket
+
+                # 檢查連接是否已關閉
+                if hasattr(websocket, "client_state"):
+                    try:
+                        # 嘗試從 starlette 導入（FastAPI 基於 Starlette）
+                        import starlette.websockets  # type: ignore[import-not-found]
+
+                        if hasattr(starlette.websockets, "WebSocketState"):
+                            WebSocketState = starlette.websockets.WebSocketState
+                            if websocket.client_state != WebSocketState.CONNECTED:
+                                debug_log(
+                                    f"準確檢測：WebSocket 狀態不是 CONNECTED，而是 {websocket.client_state}"
+                                )
+                                # 清理死連接
+                                self.current_session.websocket = None
+                                return False
+                    except ImportError:
+                        # 如果導入失敗，使用替代方法
+                        debug_log("無法導入 WebSocketState，使用替代方法檢測連接")
+                        # 跳過狀態檢查，直接測試連接
+
+                # 如果連接看起來是活的，嘗試發送 ping（非阻塞）
+                # 注意：FastAPI WebSocket 沒有內建的 ping 方法，這裡使用自定義消息
+                await websocket.send_json({"type": "ping", "timestamp": time.time()})
+                debug_log("準確檢測：成功發送 ping 消息，連接是活躍的")
                 return True
 
-            # 檢查其他會話的WebSocket連接
-            active_websockets = 0
-            for session_id, session in self.sessions.items():
-                if session.websocket:
-                    active_websockets += 1
-                    debug_log(f"檢測到會話 {session_id} 的WebSocket連接")
-
-            if active_websockets > 0:
-                debug_log(f"檢測到 {active_websockets} 個活躍的WebSocket連接")
-                return True
-
-            debug_log("沒有檢測到任何活躍的WebSocket連接")
-            return False
+            except Exception as e:
+                debug_log(f"準確檢測：連接測試失敗 - {e}")
+                # 連接已死，清理它
+                if self.current_session:
+                    self.current_session.websocket = None
+                return False
 
         except Exception as e:
             debug_log(f"檢查活躍連接時發生錯誤：{e}")

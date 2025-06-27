@@ -704,7 +704,7 @@
 
         // 檢查是否是新會話創建的通知
         if (data.action === 'new_session_created' || data.type === 'new_session_created') {
-            console.log('🆕 檢測到新會話創建，完全刷新頁面以確保狀態同步');
+            console.log('🆕 檢測到新會話創建，局部更新頁面內容');
 
             // 播放音效通知
             if (this.audioManager) {
@@ -713,28 +713,40 @@
 
             // 顯示新會話通知
             window.MCPFeedback.Utils.showMessage(
-                data.message || '新的 MCP 會話已創建，正在打開新窗口...',
+                data.message || '新的 MCP 會話已創建，正在更新內容...',
                 window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS
             );
 
-            // 使用 window.open 打開新窗口並關閉當前窗口
+            // 局部更新頁面內容而非開啟新視窗
+            const self = this;
             setTimeout(function() {
-                console.log('🔄 使用 window.open 打開新窗口');
+                console.log('🔄 執行局部更新頁面內容');
 
-                // 打開新窗口
-                const newWindow = window.open(window.location.href, '_blank');
-
-                if (newWindow) {
-                    console.log('✅ 新窗口打開成功，關閉當前窗口');
-                    // 短暫延遲後關閉當前窗口
-                    setTimeout(function() {
-                        window.close();
-                    }, 500);
-                } else {
-                    console.warn('❌ window.open 被阻止，回退到頁面刷新');
-                    window.location.reload();
+                // 1. 更新會話資訊
+                if (data.session_info) {
+                    self.currentSessionId = data.session_info.session_id;
+                    console.log('📋 新會話 ID:', self.currentSessionId);
                 }
-            }, 1500);
+
+                // 2. 刷新頁面內容（AI 摘要、表單等）
+                self.refreshPageContent();
+
+                // 3. 重置表單狀態
+                self.clearFeedback();
+
+                // 4. 重置回饋狀態為等待中
+                if (self.uiManager) {
+                    self.uiManager.setFeedbackState(
+                        window.MCPFeedback.Utils.CONSTANTS.FEEDBACK_WAITING,
+                        self.currentSessionId
+                    );
+                }
+
+                // 5. 檢查並啟動自動提交
+                self.checkAndStartAutoSubmit();
+
+                console.log('✅ 局部更新完成，頁面已準備好接收新的回饋');
+            }, 500);
 
             return; // 提前返回，不執行後續的局部更新邏輯
         }

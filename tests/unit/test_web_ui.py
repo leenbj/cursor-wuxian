@@ -108,11 +108,16 @@ class TestWebFeedbackSession:
         # 測試初始狀態
         assert session.status == SessionStatus.WAITING
 
-        # 測試狀態更新
-        session.update_status(SessionStatus.FEEDBACK_SUBMITTED, "已提交回饋")
+        # 測試狀態更新 - 使用 next_step 方法
+        # 首先進入 ACTIVE 狀態
+        result = session.next_step("會話已激活")
+        assert result is True
+        assert session.status == SessionStatus.ACTIVE
+        # 然後進入 FEEDBACK_SUBMITTED 狀態
+        result = session.next_step("已提交回饋")  # type: ignore[unreachable]
+        assert result is True
         assert session.status == SessionStatus.FEEDBACK_SUBMITTED
-        # 修復 unreachable 錯誤 - 使用 type: ignore 註解
-        assert session.status_message == "已提交回饋"  # type: ignore[unreachable]
+        assert session.status_message == "已提交回饋"
 
     def test_session_age_and_idle_time(self, test_project_dir):
         """測試會話年齡和空閒時間"""
