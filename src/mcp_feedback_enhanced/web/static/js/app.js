@@ -700,7 +700,11 @@
      * 處理 WebSocket 訊息（防抖版本）
      */
     FeedbackApp.prototype.handleWebSocketMessage = function(data) {
-        if (this._debouncedHandleWebSocketMessage) {
+        // 命令輸出相關的訊息不應該使用防抖，需要立即處理
+        if (data.type === 'command_output' || data.type === 'command_complete' || data.type === 'command_error') {
+            this._originalHandleWebSocketMessage(data);
+        } else if (this._debouncedHandleWebSocketMessage) {
+            // 其他訊息類型使用防抖
             this._debouncedHandleWebSocketMessage(data);
         } else {
             // 回退到原始方法（防抖未初始化時）
@@ -1412,6 +1416,22 @@
     FeedbackApp.prototype.appendCommandOutput = function(output) {
         const commandOutput = window.MCPFeedback.Utils.safeQuerySelector('#commandOutput');
         if (commandOutput) {
+            // 檢查是否是空的（首次使用）
+            if (commandOutput.textContent === '' && output.startsWith('$')) {
+                // 如果是空的且輸出以 $ 開頭，添加歡迎訊息
+                const projectPathElement = window.MCPFeedback.Utils.safeQuerySelector('#projectPathDisplay');
+                const projectPath = projectPathElement ? projectPathElement.getAttribute('data-full-path') : 'unknown';
+                
+                const welcomeText = `歡迎使用互動回饋終端
+========================================
+專案目錄: ${projectPath}
+輸入命令後按 Enter 或點擊執行按鈕
+支援的命令: ls, dir, pwd, cat, type 等
+
+`;
+                commandOutput.textContent = welcomeText;
+            }
+            
             commandOutput.textContent += output;
             commandOutput.scrollTop = commandOutput.scrollHeight;
         }
