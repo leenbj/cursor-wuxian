@@ -135,6 +135,10 @@ def test_web_ui_simple():
         print("🔧 創建 Web UI 管理器...")
         manager = WebUIManager()  # 使用環境變數控制主機和端口
 
+        # 顯示最終使用的端口（可能因端口佔用而自動切換）
+        if manager.port != 9765:
+            print(f"💡 端口 9765 被佔用，已自動切換到端口 {manager.port}")
+
         print("🔧 創建測試會話...")
         with tempfile.TemporaryDirectory() as temp_dir:
             markdown_test_content = """# Web UI 測試 - Markdown 渲染功能
@@ -218,6 +222,12 @@ def process_feedback(data):
                     print("✅ Web 服務器啟動成功")
                     url = f"http://{manager.host}:{manager.port}"
                     print(f"🌐 服務器運行在: {url}")
+
+                    # 如果端口有變更，額外提醒
+                    if manager.port != 9765:
+                        print(
+                            f"📌 注意：由於端口 9765 被佔用，服務已切換到端口 {manager.port}"
+                        )
 
                     # 嘗試開啟瀏覽器
                     print("🌐 正在開啟瀏覽器...")

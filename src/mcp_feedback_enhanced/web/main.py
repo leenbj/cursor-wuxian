@@ -77,6 +77,18 @@ class WebUIManager:
         if port is not None:
             # 如果明確指定了端口，使用指定的端口
             self.port = port
+            # 檢查指定端口是否可用
+            if not PortManager.is_port_available(self.host, self.port):
+                debug_log(f"警告：指定的端口 {self.port} 可能已被佔用")
+                # 在測試模式下，嘗試尋找替代端口
+                if os.environ.get("MCP_TEST_MODE", "").lower() == "true":
+                    debug_log("測試模式：自動尋找替代端口")
+                    original_port = self.port
+                    self.port = PortManager.find_free_port_enhanced(
+                        preferred_port=self.port, auto_cleanup=False, host=self.host
+                    )
+                    if self.port != original_port:
+                        debug_log(f"自動切換到可用端口: {original_port} → {self.port}")
         elif preferred_port == 0:
             # 如果偏好端口為 0，使用系統自動分配
             import socket
@@ -472,9 +484,48 @@ class WebUIManager:
         def run_server_with_retry():
             max_retries = 5
             retry_count = 0
+            original_port = self.port
 
             while retry_count < max_retries:
                 try:
+                    # 在嘗試啟動前先檢查端口是否可用
+                    if not PortManager.is_port_available(self.host, self.port):
+                        debug_log(f"端口 {self.port} 已被佔用，自動尋找替代端口")
+
+                        # 查找占用端口的進程信息
+                        process_info = PortManager.find_process_using_port(self.port)
+                        if process_info:
+                            debug_log(
+                                f"端口 {self.port} 被進程 {process_info['name']} "
+                                f"(PID: {process_info['pid']}) 佔用"
+                            )
+
+                        # 自動尋找新端口
+                        try:
+                            new_port = PortManager.find_free_port_enhanced(
+                                preferred_port=self.port,
+                                auto_cleanup=False,  # 不自動清理其他進程
+                                host=self.host,
+                            )
+                            debug_log(f"自動切換端口: {self.port} → {new_port}")
+                            self.port = new_port
+                        except RuntimeError as port_error:
+                            error_id = ErrorHandler.log_error_with_context(
+                                port_error,
+                                context={
+                                    "operation": "端口查找",
+                                    "original_port": original_port,
+                                    "current_port": self.port,
+                                },
+                                error_type=ErrorType.NETWORK,
+                            )
+                            debug_log(
+                                f"無法找到可用端口 [錯誤ID: {error_id}]: {port_error}"
+                            )
+                            raise RuntimeError(
+                                f"無法找到可用端口，原始端口 {original_port} 被佔用"
+                            ) from port_error
+
                     debug_log(
                         f"嘗試啟動伺服器在 {self.host}:{self.port} (嘗試 {retry_count + 1}/{max_retries})"
                     )
@@ -501,37 +552,27 @@ class WebUIManager:
                         )
 
                     asyncio.run(serve_with_async_init())
+
+                    # 成功啟動，顯示最終使用的端口
+                    if self.port != original_port:
+                        debug_log(
+                            f"✅ 服務器成功啟動在替代端口 {self.port} (原端口 {original_port} 被佔用)"
+                        )
+
                     break
 
                 except OSError as e:
-                    if e.errno == 10048:  # Windows: 位址已在使用中
+                    if e.errno in {
+                        10048,
+                        98,
+                    }:  # Windows: 10048, Linux: 98 (位址已在使用中)
                         retry_count += 1
                         if retry_count < max_retries:
                             debug_log(
-                                f"端口 {self.port} 被占用，使用增強端口管理查找新端口"
+                                f"端口 {self.port} 啟動失敗 (OSError)，嘗試下一個端口"
                             )
-                            # 使用增強的端口管理查找新端口
-                            try:
-                                self.port = PortManager.find_free_port_enhanced(
-                                    preferred_port=self.port + 1,
-                                    auto_cleanup=False,  # 啟動時不自動清理，避免誤殺其他服務
-                                    host=self.host,
-                                )
-                                debug_log(f"找到新的可用端口: {self.port}")
-                            except RuntimeError as port_error:
-                                # 使用統一錯誤處理
-                                error_id = ErrorHandler.log_error_with_context(
-                                    port_error,
-                                    context={
-                                        "operation": "端口查找",
-                                        "current_port": self.port,
-                                    },
-                                    error_type=ErrorType.NETWORK,
-                                )
-                                debug_log(
-                                    f"無法找到可用端口 [錯誤ID: {error_id}]: {port_error}"
-                                )
-                                break
+                            # 嘗試下一個端口
+                            self.port = self.port + 1
                         else:
                             debug_log("已達到最大重試次數，無法啟動伺服器")
                             break
