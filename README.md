@@ -122,7 +122,8 @@ pip install uv
       "env": {
         "MCP_DEBUG": "false",
         "MCP_WEB_HOST": "127.0.0.1",
-        "MCP_WEB_PORT": "8765"
+        "MCP_WEB_PORT": "8765",
+        "MCP_LANGUAGE": "en"
       },
       "autoApprove": ["interactive_feedback"]
     }
@@ -172,10 +173,24 @@ follow mcp-feedback-enhanced instructions
 | `MCP_WEB_HOST` | Web UI host binding | IP address or hostname | `127.0.0.1` |
 | `MCP_WEB_PORT` | Web UI port | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | Desktop application mode | `true`/`false` | `false` |
+| `MCP_LANGUAGE` | Force UI language | `zh-TW`/`zh-CN`/`en` | Auto-detect |
 
 **`MCP_WEB_HOST` Explanation**:
 - `127.0.0.1` (default): Local access only, higher security
 - `0.0.0.0`: Allow remote access, suitable for SSH remote development environments
+
+**`MCP_LANGUAGE` Explanation**:
+- Used to force the interface language, overriding automatic system detection
+- Supported language codes:
+  - `zh-TW`: Traditional Chinese
+  - `zh-CN`: Simplified Chinese
+  - `en`: English
+- Language detection priority:
+  1. User-saved language settings in the interface (highest priority)
+  2. `MCP_LANGUAGE` environment variable
+  3. System environment variables (LANG, LC_ALL, etc.)
+  4. System default language
+  5. Fallback to default language (Traditional Chinese)
 
 ### Testing Options
 ```bash
@@ -188,6 +203,11 @@ uvx mcp-feedback-enhanced@latest test --desktop # Test desktop application (v2.5
 
 # Debug mode
 MCP_DEBUG=true uvx mcp-feedback-enhanced@latest test
+
+# Specify language for testing
+MCP_LANGUAGE=en uvx mcp-feedback-enhanced@latest test --web    # Force English interface
+MCP_LANGUAGE=zh-TW uvx mcp-feedback-enhanced@latest test --web  # Force Traditional Chinese
+MCP_LANGUAGE=zh-CN uvx mcp-feedback-enhanced@latest test --web  # Force Simplified Chinese
 ```
 
 ### Developer Installation

@@ -122,7 +122,8 @@ pip install uv
       "env": {
         "MCP_DEBUG": "false",
         "MCP_WEB_HOST": "127.0.0.1",
-        "MCP_WEB_PORT": "8765"
+        "MCP_WEB_PORT": "8765",
+        "MCP_LANGUAGE": "zh-CN"
       },
       "autoApprove": ["interactive_feedback"]
     }
@@ -172,10 +173,24 @@ pip install uv
 | `MCP_WEB_HOST` | Web UI 主机绑定 | IP 地址或主机名 | `127.0.0.1` |
 | `MCP_WEB_PORT` | Web UI 端口 | `1024-65535` | `8765` |
 | `MCP_DESKTOP_MODE` | 桌面应用程序模式 | `true`/`false` | `false` |
+| `MCP_LANGUAGE` | 强制指定界面语言 | `zh-TW`/`zh-CN`/`en` | 自动检测 |
 
 **`MCP_WEB_HOST` 说明**：
 - `127.0.0.1`（默认）：仅本地访问，安全性较高
 - `0.0.0.0`：允许远程访问，适用于 SSH 远程开发环境
+
+**`MCP_LANGUAGE` 说明**：
+- 用于强制指定界面语言，覆盖系统自动检测
+- 支持的语言代码：
+  - `zh-TW`：繁体中文
+  - `zh-CN`：简体中文
+  - `en`：英文
+- 语言检测优先顺序：
+  1. 用户在界面中保存的语言设定（最高优先级）
+  2. `MCP_LANGUAGE` 环境变量
+  3. 系统环境变量（LANG、LC_ALL 等）
+  4. 系统默认语言
+  5. 回退到默认语言（繁体中文）
 
 ### 测试选项
 ```bash
@@ -188,6 +203,11 @@ uvx mcp-feedback-enhanced@latest test --desktop # 测试桌面应用程序 (v2.5
 
 # 调试模式
 MCP_DEBUG=true uvx mcp-feedback-enhanced@latest test
+
+# 指定语言测试
+MCP_LANGUAGE=en uvx mcp-feedback-enhanced@latest test --web    # 强制使用英文界面
+MCP_LANGUAGE=zh-TW uvx mcp-feedback-enhanced@latest test --web  # 强制使用繁体中文
+MCP_LANGUAGE=zh-CN uvx mcp-feedback-enhanced@latest test --web  # 强制使用简体中文
 ```
 
 ### 开发者安装
