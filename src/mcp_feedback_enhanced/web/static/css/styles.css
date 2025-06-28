@@ -2075,3 +2075,129 @@ textarea:-ms-input-placeholder,
     100% { opacity: 1; }
 }
 
+/* 自動執行命令設定樣式 */
+.command-auto-settings {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.command-auto-settings .settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.command-auto-settings .settings-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.command-auto-settings .settings-content {
+    transition: opacity 0.3s ease;
+}
+
+.command-auto-settings .settings-content.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.auto-command-item {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.auto-command-item:last-child {
+    margin-bottom: 0;
+}
+
+.command-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.command-icon {
+    font-size: 18px;
+}
+
+.command-input-wrapper {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0 12px;
+    transition: border-color 0.3s ease;
+}
+
+.command-input-wrapper:focus-within {
+    border-color: var(--accent-color);
+}
+
+.command-prefix {
+    color: var(--accent-color);
+    font-weight: bold;
+    margin-right: 8px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.auto-command-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 0;
+    color: var(--text-primary);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    outline: none;
+}
+
+.command-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.btn-test {
+    background: var(--info-color);
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn-test:hover {
+    background: #1976d2;
+}
+
+.command-hint {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+

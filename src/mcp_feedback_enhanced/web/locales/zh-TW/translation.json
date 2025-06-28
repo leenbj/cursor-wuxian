@@ -96,7 +96,23 @@
         "running": "執行中...",
         "completed": "執行完成",
         "error": "執行錯誤",
-        "history": "命令歷史"
+        "history": "命令歷史",
+        "autoCommand": {
+            "title": "🤖 自動執行命令設定",
+            "description": "設定在特定時機自動執行的命令",
+            "enabled": "啟用自動執行命令",
+            "onNewSession": "新會話建立時執行",
+            "onNewSessionPlaceholder": "例如：pwd 或 git status",
+            "onFeedbackSubmit": "提交回饋後執行",
+            "onFeedbackSubmitPlaceholder": "例如：echo '回饋已提交'",
+            "testOnNewSession": "測試新會話命令",
+            "testOnFeedbackSubmit": "測試回饋提交命令",
+            "help": "這些命令會在對應的時機自動執行。留空表示不執行任何命令。"
+        },
+        "autoSettings": {
+            "exampleNewSession": "💡 範例：pwd, git status, ls -la",
+            "exampleFeedback": "💡 範例：date, echo \"Done\", git log -1"
+        }
     },
     "combined": {
         "summaryTitle": "📋 AI 工作摘要",

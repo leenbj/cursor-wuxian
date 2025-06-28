@@ -367,6 +367,10 @@
                 });
             }
 
+            
+            // 自動命令設定相關事件
+            self.setupAutoCommandEvents();
+
             // 設置設定管理器的事件監聽器
             self.settingsManager.setupEventListeners();
 
@@ -693,6 +697,14 @@
                 console.log('🖥️ 收到桌面關閉請求');
                 this.handleDesktopCloseRequest(data);
                 break;
+            case 'notification':
+                console.log('📢 收到通知:', data);
+                // 處理 FEEDBACK_SUBMITTED 通知
+                if (data.code === 'session.feedbackSubmitted' || data.code === 'FEEDBACK_SUBMITTED' || data.code === 201) {
+                    console.log('✅ 回饋提交成功通知');
+                    this.handleFeedbackReceived(data);
+                }
+                break;
         }
     };
 
@@ -751,6 +763,9 @@
         // 更新 AI 摘要區域顯示「已送出反饋」狀態
         const submittedMessage = window.i18nManager ? window.i18nManager.t('feedback.submittedWaiting') : '已送出反饋，等待下次 MCP 調用...';
         this.updateSummaryStatus(submittedMessage);
+        
+        // 執行提交回饋後的自動命令
+        this.executeAutoCommandOnFeedbackSubmit();
 
         // 刷新會話列表以顯示最新狀態
         this.refreshSessionList();
@@ -815,6 +830,9 @@
             if (this.audioManager) {
                 this.audioManager.playNotification();
             }
+            
+            // 執行新會話自動命令
+            this.executeAutoCommandOnNewSession();
 
             // 發送瀏覽器通知
             if (this.notificationManager && data.session_info) {
@@ -1452,6 +1470,68 @@
     };
 
     /**
+     * 執行新會話自動命令
+     */
+    FeedbackApp.prototype.executeAutoCommandOnNewSession = function() {
+        if (!this.settingsManager) return;
+        
+        const settings = this.settingsManager.currentSettings;
+        if (!settings.autoCommandEnabled || !settings.commandOnNewSession) {
+            console.log('⏩ 新會話自動命令未啟用或未設定');
+            return;
+        }
+        
+        const command = settings.commandOnNewSession.trim();
+        if (!command) return;
+        
+        console.log('🚀 執行新會話自動命令:', command);
+        this.appendCommandOutput('🆕 [自動執行] $ ' + command + '\n');
+        
+        // 使用 WebSocket 發送命令
+        if (this.webSocketManager && this.webSocketManager.isConnected) {
+            console.log('📡 WebSocket 已連接，發送命令:', command);
+            this.webSocketManager.send({
+                type: 'run_command',
+                command: command
+            });
+        } else {
+            console.error('❌ 無法執行自動命令：WebSocket 未連接');
+            this.appendCommandOutput('[錯誤] WebSocket 未連接，無法執行命令\n');
+        }
+    };
+    
+    /**
+     * 執行提交回饋後自動命令
+     */
+    FeedbackApp.prototype.executeAutoCommandOnFeedbackSubmit = function() {
+        if (!this.settingsManager) return;
+        
+        const settings = this.settingsManager.currentSettings;
+        if (!settings.autoCommandEnabled || !settings.commandOnFeedbackSubmit) {
+            console.log('⏩ 提交回饋後自動命令未啟用或未設定');
+            return;
+        }
+        
+        const command = settings.commandOnFeedbackSubmit.trim();
+        if (!command) return;
+        
+        console.log('🚀 執行提交回饋後自動命令:', command);
+        this.appendCommandOutput('✅ [自動執行] $ ' + command + '\n');
+        
+        // 使用 WebSocket 發送命令
+        if (this.webSocketManager && this.webSocketManager.isConnected) {
+            console.log('📡 WebSocket 已連接，發送命令:', command);
+            this.webSocketManager.send({
+                type: 'run_command',
+                command: command
+            });
+        } else {
+            console.error('❌ 無法執行自動命令：WebSocket 未連接');
+            this.appendCommandOutput('[錯誤] WebSocket 未連接，無法執行命令\n');
+        }
+    };
+
+    /**
      * 更新摘要狀態
      */
     FeedbackApp.prototype.updateSummaryStatus = function(message) {
@@ -1459,6 +1539,127 @@
         summaryElements.forEach(function(element) {
             element.innerHTML = '<div style="padding: 16px; background: var(--success-color); color: white; border-radius: 6px; text-align: center;">✅ ' + message + '</div>';
         });
+    };
+
+    /**
+     * 設置自動命令相關事件
+     */
+    FeedbackApp.prototype.setupAutoCommandEvents = function() {
+        const self = this;
+        
+        // 自動命令開關
+        const autoCommandEnabled = window.MCPFeedback.Utils.safeQuerySelector('#autoCommandEnabled');
+        if (autoCommandEnabled) {
+            // 載入設定
+            if (this.settingsManager) {
+                autoCommandEnabled.checked = this.settingsManager.currentSettings.autoCommandEnabled;
+                this.updateAutoCommandUI(autoCommandEnabled.checked);
+            }
+            
+            autoCommandEnabled.addEventListener('change', function() {
+                const enabled = autoCommandEnabled.checked;
+                self.updateAutoCommandUI(enabled);
+                
+                if (self.settingsManager) {
+                    self.settingsManager.saveSettings({
+                        autoCommandEnabled: enabled
+                    });
+                }
+            });
+        }
+        
+        // 新會話命令輸入
+        const commandOnNewSession = window.MCPFeedback.Utils.safeQuerySelector('#commandOnNewSession');
+        if (commandOnNewSession) {
+            // 載入設定
+            if (this.settingsManager) {
+                commandOnNewSession.value = this.settingsManager.currentSettings.commandOnNewSession || '';
+            }
+            
+            commandOnNewSession.addEventListener('change', function() {
+                if (self.settingsManager) {
+                    self.settingsManager.saveSettings({
+                        commandOnNewSession: commandOnNewSession.value
+                    });
+                }
+            });
+        }
+        
+        // 提交回饋後命令輸入
+        const commandOnFeedbackSubmit = window.MCPFeedback.Utils.safeQuerySelector('#commandOnFeedbackSubmit');
+        if (commandOnFeedbackSubmit) {
+            // 載入設定
+            if (this.settingsManager) {
+                commandOnFeedbackSubmit.value = this.settingsManager.currentSettings.commandOnFeedbackSubmit || '';
+            }
+            
+            commandOnFeedbackSubmit.addEventListener('change', function() {
+                if (self.settingsManager) {
+                    self.settingsManager.saveSettings({
+                        commandOnFeedbackSubmit: commandOnFeedbackSubmit.value
+                    });
+                }
+            });
+        }
+        
+        // 測試執行按鈕
+        const testNewSessionCommand = window.MCPFeedback.Utils.safeQuerySelector('#testNewSessionCommand');
+        if (testNewSessionCommand) {
+            testNewSessionCommand.addEventListener('click', function() {
+                const command = commandOnNewSession ? commandOnNewSession.value.trim() : '';
+                if (command) {
+                    self.testCommand(command, '🆕 [測試] ');
+                } else {
+                    window.MCPFeedback.Utils.showMessage('請先輸入命令', window.MCPFeedback.Utils.CONSTANTS.MESSAGE_WARNING);
+                }
+            });
+        }
+        
+        const testFeedbackCommand = window.MCPFeedback.Utils.safeQuerySelector('#testFeedbackCommand');
+        if (testFeedbackCommand) {
+            testFeedbackCommand.addEventListener('click', function() {
+                const command = commandOnFeedbackSubmit ? commandOnFeedbackSubmit.value.trim() : '';
+                if (command) {
+                    self.testCommand(command, '✅ [測試] ');
+                } else {
+                    window.MCPFeedback.Utils.showMessage('請先輸入命令', window.MCPFeedback.Utils.CONSTANTS.MESSAGE_WARNING);
+                }
+            });
+        }
+    };
+    
+    /**
+     * 更新自動命令 UI 狀態
+     */
+    FeedbackApp.prototype.updateAutoCommandUI = function(enabled) {
+        const autoCommandContent = window.MCPFeedback.Utils.safeQuerySelector('#autoCommandContent');
+        if (autoCommandContent) {
+            if (enabled) {
+                autoCommandContent.classList.remove('disabled');
+            } else {
+                autoCommandContent.classList.add('disabled');
+            }
+        }
+    };
+    
+    /**
+     * 測試命令執行
+     */
+    FeedbackApp.prototype.testCommand = function(command, prefix) {
+        if (!command) return;
+        
+        console.log('🧪 測試執行命令:', command);
+        this.appendCommandOutput(prefix + '$ ' + command + '\n');
+        
+        // 使用 WebSocket 發送命令
+        if (this.webSocketManager && this.webSocketManager.isConnected) {
+            this.webSocketManager.send({
+                type: 'run_command',
+                command: command
+            });
+        } else {
+            this.appendCommandOutput('❌ WebSocket 未連接\n');
+        }
     };
 
     /**

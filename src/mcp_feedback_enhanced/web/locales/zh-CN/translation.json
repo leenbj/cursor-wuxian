@@ -91,7 +91,23 @@
         "running": "执行中...",
         "completed": "执行完成",
         "error": "执行错误",
-        "history": "命令历史"
+        "history": "命令历史",
+        "autoCommand": {
+            "title": "🤖 自动执行命令设置",
+            "description": "设置在特定时机自动执行的命令",
+            "enabled": "启用自动执行命令",
+            "onNewSession": "新会话建立时执行",
+            "onNewSessionPlaceholder": "例如：pwd 或 git status",
+            "onFeedbackSubmit": "提交反馈后执行",
+            "onFeedbackSubmitPlaceholder": "例如：echo '反馈已提交'",
+            "testOnNewSession": "测试新会话命令",
+            "testOnFeedbackSubmit": "测试反馈提交命令",
+            "help": "这些命令会在对应的时机自动执行。留空表示不执行任何命令。"
+        },
+        "autoSettings": {
+            "exampleNewSession": "💡 示例：pwd, git status, ls -la",
+            "exampleFeedback": "💡 示例：date, echo \"Done\", git log -1"
+        }
     },
     "combined": {
         "summaryTitle": "📋 AI 工作摘要",

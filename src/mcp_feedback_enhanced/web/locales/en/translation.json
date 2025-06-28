@@ -91,7 +91,23 @@
         "running": "Running...",
         "completed": "Completed",
         "error": "Execution Error",
-        "history": "Command History"
+        "history": "Command History",
+        "autoCommand": {
+            "title": "🤖 Auto Command Settings",
+            "description": "Configure commands to execute automatically at specific times",
+            "enabled": "Enable Auto Commands",
+            "onNewSession": "Execute on New Session",
+            "onNewSessionPlaceholder": "e.g., pwd or git status",
+            "onFeedbackSubmit": "Execute on Feedback Submit",
+            "onFeedbackSubmitPlaceholder": "e.g., echo 'Feedback submitted'",
+            "testOnNewSession": "Test New Session Command",
+            "testOnFeedbackSubmit": "Test Feedback Submit Command",
+            "help": "These commands will execute automatically at the corresponding times. Leave empty to skip execution."
+        },
+        "autoSettings": {
+            "exampleNewSession": "💡 Example: pwd, git status, ls -la",
+            "exampleFeedback": "💡 Example: date, echo \"Done\", git log -1"
+        }
     },
     "combined": {
         "summaryTitle": "📋 AI Work Summary",
