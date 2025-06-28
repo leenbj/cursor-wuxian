@@ -38,14 +38,16 @@ This is an [MCP server](https://modelcontextprotocol.io/) that establishes **fee
 
 ### 📝 Smart Workflow
 - **Prompt Management**: CRUD operations for common prompts, usage statistics, intelligent sorting
-- **Auto-Timed Submit**: 1-86400 second flexible timer, supports pause, resume, cancel
-- **Session Management & Tracking**: Local file storage, privacy controls, history export, real-time statistics
+- **Auto-Timed Submit**: 1-86400 second flexible timer, supports pause, resume, cancel with new pause/resume button controls
+- **Auto Command Execution** (v2.6.0): Automatically execute preset commands after creating new sessions or commits for improved development efficiency
+- **Session Management & Tracking**: Local file storage, privacy controls, history export (supports JSON, CSV, Markdown formats), real-time statistics, flexible timeout settings
 - **Connection Monitoring**: WebSocket status monitoring, auto-reconnection, quality indicators
 - **AI Work Summary Markdown Display**: Support for rich Markdown syntax rendering including headers, bold text, code blocks, lists, links and other formats for enhanced content readability
 
 ### 🎨 Modern Experience
 - **Responsive Design**: Adapts to different screen sizes, modular JavaScript architecture
 - **Audio Notifications**: Built-in multiple sound effects, custom audio upload support, volume control
+- **System Notifications** (v2.6.0): System-level real-time alerts for important events (like auto-commit, session timeout)
 - **Smart Memory**: Input box height memory, one-click copy, persistent settings
 - **Multi-language Support**: Traditional Chinese, English, Simplified Chinese, instant switching
 
@@ -59,7 +61,7 @@ This is an [MCP server](https://modelcontextprotocol.io/) that establishes **fee
 ### Web UI Interface (v2.5.0 - Desktop Application Support)
 
 <div align="center">
-  <img src="docs/en/images/web1.jpeg" width="400" alt="Web UI Main Interface - Prompt Management & Auto Submit" />
+  <img src="docs/en/images/web1.png" width="400" alt="Web UI Main Interface - Prompt Management & Auto Submit" />
 </div>
 
 <details>
@@ -233,15 +235,14 @@ make quick-check                                        # Quick check and auto-f
 
 📋 **Complete Version History:** [RELEASE_NOTES/CHANGELOG.en.md](RELEASE_NOTES/CHANGELOG.en.md)
 
-### Latest Version Highlights (v2.5.5)
-- 🌐 **SSH Remote Development Support**: Added `MCP_WEB_HOST` environment variable, completely solving SSH remote development access issues
-- 🍎 **Enhanced macOS Compilation Support**: Added PyO3 compilation configuration, supporting Intel and Apple Silicon architectures
-- 📝 **Tool Documentation Optimization**: Moved LLM instructions to tool docstring, improving token efficiency
-- 🖥️ **Desktop Application MCP Protocol Fix**: Fixed MCP protocol communication pollution issues in desktop mode
-- 📦 **Packaging Process Fix**: Fixed multi-platform desktop application packaging and publishing issues
-- 🔧 **Release Process Optimization**: Improved stability of automated release workflows
-- 📊 **AI Work Summary Markdown Enhancement**: Improved Markdown rendering effects and compatibility
-- 🔄 **Session History Process Optimization**: Improved session saving and management mechanisms
+### Latest Version Highlights (v2.6.0)
+- 🚀 **Auto Command Execution**: Automatically execute preset commands after creating new sessions or commits, improving workflow efficiency
+- 📊 **Session Export Feature**: Support exporting session records to multiple formats for easy sharing and archiving
+- ⏸️ **Auto-commit Control**: Added pause and resume buttons for better control over auto-commit timing
+- 🔔 **System Notifications**: System-level notifications for important events with real-time alerts
+- ⏱️ **Session Timeout Optimization**: Redesigned session management with more flexible configuration options
+- 🌏 **I18n Enhancement**: Refactored internationalization architecture with full multilingual support for notifications
+- 🎨 **UI Simplification**: Significantly simplified user interface for improved user experience
 
 ## 🐛 Common Issues
 

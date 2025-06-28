@@ -2,6 +2,29 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [v2.6.0] - 2025-06-28 - Intelligent Session Management & Automation Enhancement
+
+### 🌟 Version Highlights
+Significantly enhanced session management capabilities with automatic command execution, export features, and notification system, providing a more intelligent development experience.
+
+### ✨ New Features
+- 🚀 **Auto Command Execution**: Automatically execute preset commands after creating new sessions or commits
+- 📊 **Session Export Feature**: Support exporting session records to multiple formats
+- ⏸️ **Auto-commit Control**: Added pause and resume buttons for better control over auto-commit timing
+- 🔔 **System Notifications**: System-level notifications for important events with real-time alerts
+
+### 🚀 Improvements
+- ⏱️ **Session Timeout Optimization**: Redesigned session management with more flexible configuration options
+- 🌏 **I18n Enhancement**: Refactored internationalization architecture with full multilingual support for notifications
+- 🎨 **UI Simplification**: Significantly simplified user interface for improved user experience
+
+### 🐛 Bug Fixes
+- Fixed command execution functionality issues
+- Fixed WebSocket status detection import errors
+- Improved session history multilingual support
+
+---
+
 ## [v2.5.0] - 2025-06-15 - Desktop Application & Performance Optimization
 
 ### 🌟 Version Highlights
