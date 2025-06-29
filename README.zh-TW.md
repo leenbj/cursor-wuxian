@@ -53,7 +53,7 @@
 
 ### 🖼️ 圖片與媒體
 - **全格式支援**：PNG、JPG、JPEG、GIF、BMP、WebP
-- **便捷上傳**：拖拽檔案、剪貼板粘貼（Ctrl+V）
+- **便捷上傳**：拖拽檔案、剪貼板貼上（Ctrl+V）
 - **無限制處理**：支援任意大小圖片，自動智能處理
 
 ## 🌐 介面預覽
@@ -85,7 +85,7 @@
 
 **快捷鍵支援**
 - `Ctrl+Enter`（Windows/Linux）/ `Cmd+Enter`（macOS）：提交回饋（主鍵盤與數字鍵盤皆支援）
-- `Ctrl+V`（Windows/Linux）/ `Cmd+V`（macOS）：直接粘貼剪貼板圖片
+- `Ctrl+V`（Windows/Linux）/ `Cmd+V`（macOS）：直接貼上剪貼板圖片
 - `Ctrl+I`（Windows/Linux）/ `Cmd+I`（macOS）：快速聚焦輸入框 (感謝 @penn201500)
 
 ## 🚀 快速開始
@@ -161,13 +161,13 @@ pip install uv
 ```
 # MCP Interactive Feedback 規則
 
-註意根據mcp-feedback-enhanced 工具的要求在任務完成前進行工具調用
+注意在任務完成前根據mcp-feedback-enhanced工具的要求進行工具調用
 ```
 
 ## ⚙️ 進階設定
 
 ### 環境變數
-| 變數 | 用途 | 值 | 默認 |
+| 變數 | 用途 | 值 | 預設 |
 |------|------|-----|------|
 | `MCP_DEBUG` | 調試模式 | `true`/`false` | `false` |
 | `MCP_WEB_HOST` | Web UI 主機綁定 | IP 地址或主機名 | `127.0.0.1` |

@@ -48,7 +48,7 @@
 - **响应式设计**：适配不同屏幕尺寸，模块化 JavaScript 架构
 - **音效通知**：内建多种音效、支持自定义音效上传、音量控制
 - **系统通知**（v2.6.0）：重要事件（如自动提交、会话超时等）的系统级即时提醒
-- **智能记忆**：输入框高度记忆、一键复制、设定持久化
+- **智能记忆**：输入框高度记忆、一键复制、设置持久化
 - **多语言支持**：简体中文、英文、繁体中文，即时切换
 
 ### 🖼️ 图片与媒体
@@ -155,16 +155,16 @@ pip install uv
 - 桌面模式：[examples/mcp-config-desktop.json](examples/mcp-config-desktop.json)
 - Web 模式：[examples/mcp-config-web.json](examples/mcp-config-web.json)
 
-### 3. 设定提示工程
+### 3. 设置提示工程
 为了获得最佳效果，请在 AI 助手中添加以下规则：
 
 ```
 # MCP Interactive Feedback 规则
 
-注意根据mcp-feedback-enhanced工具的要求在任务完成前进行工具调用
+注意在任务完成前根据mcp-feedback-enhanced工具的要求进行工具调用
 ```
 
-## ⚙️ 进阶设定
+## ⚙️ 高级设置
 
 ### 环境变量
 | 变量 | 用途 | 值 | 默认 |
@@ -186,7 +186,7 @@ pip install uv
   - `zh-CN`：简体中文
   - `en`：英文
 - 语言检测优先顺序：
-  1. 用户在界面中保存的语言设定（最高优先级）
+  1. 用户在界面中保存的语言设置（最高优先级）
   2. `MCP_LANGUAGE` 环境变量
   3. 系统环境变量（LANG、LC_ALL 等）
   4. 系统默认语言
