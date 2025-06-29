@@ -12,7 +12,7 @@ This is an [MCP server](https://modelcontextprotocol.io/) that establishes **fee
 
 **🌐 Dual Interface Architecture Advantages:**
 - 🖥️ **Desktop Application**: Native cross-platform desktop experience, supporting Windows, macOS, Linux
-- 🌐 **Web UI Interface**: No GUI dependencies required, suitable for remote and WSL environments
+- 🌐 **Web UI**: No GUI dependencies required, suitable for remote and WSL environments
 - 🔧 **Flexible Deployment**: Choose the most suitable interface mode based on environment requirements
 - 📦 **Unified Functionality**: Both interfaces provide exactly the same functional experience
 
