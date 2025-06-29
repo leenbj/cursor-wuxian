@@ -161,7 +161,7 @@ pip install uv
 ```
 # MCP Interactive Feedback 規則
 
-注意在任務完成前根據mcp-feedback-enhanced 工具的要求進行工具調用
+注意在任務完成前根據mcp-feedback-enhanced工具的要求進行工具調用
 ```
 
 ## ⚙️ 進階設定
