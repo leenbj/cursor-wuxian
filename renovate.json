@@ -1,6 +1,44 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":semanticCommitsDisabled"
+  ],
+  "timezone": "Asia/Taipei",
+  "schedule": ["* * 1-7 * *"],
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "conflicted",
+  "commitMessagePrefix": "⬆️",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "prPriority": 10,
+    "labels": ["security"],
+    "commitMessagePrefix": "🔒"
+  },
+  "osvVulnerabilityAlerts": true,
+  "lockFileMaintenance": {
+    "enabled": false
+  },
+  "packageRules": [
+    {
+      "description": "把 patch 版本更新分組，降低 PR 數量",
+      "matchUpdateTypes": ["patch"],
+      "groupName": "patch updates",
+      "groupSlug": "patch"
+    },
+    {
+      "description": "執行期依賴的 major 更新需要人工確認相容性（見 #213/#217/#221/#228）",
+      "matchManagers": ["pep621", "cargo"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "GitHub Actions 分組，避免每個 action 各開一個 PR",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "groupSlug": "gha"
+    }
   ]
 }
