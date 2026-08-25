@@ -479,9 +479,6 @@
                     <button class="tab-button" data-tab="summary" data-i18n="tabs.summary">
                         📋 AI 摘要
                     </button>
-                    <button class="tab-button" data-tab="command" data-i18n="tabs.command">
-                        ⚡ 命令
-                    </button>
                     <button class="tab-button" data-tab="sessions" data-i18n="tabs.sessions">
                         📋 會話管理
                     </button>
@@ -503,94 +500,6 @@
                 <div class="input-group">
                     <div id="summaryContent" class="text-input" style="min-height: 300px; cursor: text; padding: 12px; line-height: 1.6; word-wrap: break-word; overflow-wrap: break-word;" data-dynamic-content="aiSummary">
                         {{ summary }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- 命令分頁 -->
-            <div id="tab-command" class="tab-content">
-                <!-- 命令輸出區域 - 放在上面 -->
-                <div class="input-group">
-                    <div id="commandOutput" class="command-output"></div>
-                </div>
-
-                <!-- 命令輸入區域 -->
-                <div class="input-group" style="margin-bottom: 20px;">
-                    <label class="input-label" data-i18n="command.inputLabel">命令輸入</label>
-                    <div style="display: flex; gap: 10px; align-items: flex-start;">
-                        <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
-                            <span style="color: var(--accent-color); font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-weight: bold;">$</span>
-                            <input
-                                type="text"
-                                id="commandInput"
-                                class="command-input-line"
-                                data-i18n-placeholder="command.placeholder"
-                                placeholder="輸入要執行的命令..."
-                                style="flex: 1; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 8px 12px; color: var(--text-primary); font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 14px;"
-                            />
-                        </div>
-                        <button id="runCommandBtn" class="btn btn-primary" data-i18n="command.runButton" style="white-space: nowrap;">
-                            ▶️ 執行
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 自動執行命令設定 -->
-                <div class="command-auto-settings">
-                    <div class="settings-header">
-                        <h4 class="settings-title" data-i18n="command.autoCommand.title">🤖 自動執行命令設定</h4>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="autoCommandEnabled" class="toggle-input">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <p class="settings-description" data-i18n="command.autoCommand.description">設定在特定時機自動執行的命令</p>
-
-                    <div class="settings-content" id="autoCommandContent">
-                        <!-- 新會話建立時執行 -->
-                        <div class="auto-command-item">
-                            <div class="command-label">
-                                <span class="command-icon">🆕</span>
-                                <span data-i18n="command.autoCommand.onNewSession">新會話建立時執行</span>
-                            </div>
-                            <div class="command-input-wrapper">
-                                <span class="command-prefix">$</span>
-                                <input type="text"
-                                       id="commandOnNewSession"
-                                       class="auto-command-input"
-                                       data-i18n-placeholder="command.autoCommand.onNewSessionPlaceholder"
-                                       placeholder="輸入要自動執行的命令...">
-                            </div>
-                            <div class="command-actions">
-                                <button class="btn-small btn-test" id="testNewSessionCommand" data-i18n="command.autoCommand.testOnNewSession">測試新會話命令</button>
-                                <span class="command-hint" data-i18n="command.autoSettings.exampleNewSession">💡 範例：pwd, git status, ls -la</span>
-                            </div>
-                        </div>
-
-                        <!-- 提交回饋後執行 -->
-                        <div class="auto-command-item">
-                            <div class="command-label">
-                                <span class="command-icon">✅</span>
-                                <span data-i18n="command.autoCommand.onFeedbackSubmit">提交回饋後執行</span>
-                            </div>
-                            <div class="command-input-wrapper">
-                                <span class="command-prefix">$</span>
-                                <input type="text"
-                                       id="commandOnFeedbackSubmit"
-                                       class="auto-command-input"
-                                       data-i18n-placeholder="command.autoCommand.onFeedbackSubmitPlaceholder"
-                                       placeholder="輸入要自動執行的命令...">
-                            </div>
-                            <div class="command-actions">
-                                <button class="btn-small btn-test" id="testFeedbackCommand" data-i18n="command.autoCommand.testOnFeedbackSubmit">測試回饋提交命令</button>
-                                <span class="command-hint" data-i18n="command.autoSettings.exampleFeedback">💡 範例：date, echo "Done", git log -1</span>
-                            </div>
-                        </div>
-
-                        <!-- 說明文字 -->
-                        <div class="auto-command-help">
-                            <p class="help-text" data-i18n="command.autoCommand.help">這些命令會在對應的時機自動執行。留空表示不執行任何命令。</p>
-                        </div>
                     </div>
                 </div>
             </div>

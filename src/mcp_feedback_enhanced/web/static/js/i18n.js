@@ -213,9 +213,6 @@ class I18nManager {
     }
 
     updateDynamicContent() {
-        // 只更新終端歡迎信息，不要覆蓋 AI 摘要
-        this.updateTerminalWelcome();
-
         // 更新會話管理相關的動態內容
         this.updateSessionManagementContent();
 
@@ -237,19 +234,6 @@ class I18nManager {
             }
 
 
-        }
-    }
-
-    updateTerminalWelcome() {
-        const commandOutput = document.getElementById('commandOutput');
-        if (commandOutput && window.feedbackApp && window.feedbackApp.isInitialized) {
-            const welcomeTemplate = this.t('dynamic.terminalWelcome');
-            if (welcomeTemplate && welcomeTemplate !== 'dynamic.terminalWelcome') {
-                // 使用 currentSessionId 而不是 sessionId
-                const sessionId = window.feedbackApp.currentSessionId || window.feedbackApp.sessionId || 'unknown';
-                const welcomeMessage = welcomeTemplate.replace('{sessionId}', sessionId);
-                commandOutput.textContent = welcomeMessage;
-            }
         }
     }
 

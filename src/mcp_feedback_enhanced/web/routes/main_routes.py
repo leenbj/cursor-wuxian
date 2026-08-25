@@ -10,6 +10,7 @@ import json
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 from fastapi import Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -45,6 +46,58 @@ def load_user_layout_settings() -> str:
         return "combined-vertical"
 
 
+# 瀏覽器不受 same-origin policy 限制地開啟 WebSocket，因此 /ws 必須自行驗證 Origin，
+# 否則惡意網頁可從使用者瀏覽器連上本機服務（Cross-Site WebSocket Hijacking）。
+# 桌面應用與非瀏覽器客戶端不會送 Origin，這種情況放行。
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1", "[::1]"})
+# Tauri WebView 依平台使用不同的自訂 scheme
+_DESKTOP_ORIGINS = frozenset(
+    {
+        "tauri://localhost",
+        "https://tauri.localhost",
+        "http://tauri.localhost",
+    }
+)
+
+
+def is_allowed_origin(origin: str, host: str, port: int) -> bool:
+    """判斷 WebSocket 的 Origin 是否可信
+
+    Args:
+        origin: 請求的 Origin header（空字串代表未提供）
+        host: 伺服器綁定的主機
+        port: 伺服器綁定的埠
+
+    Returns:
+        bool: True 表示允許連線
+    """
+    # 非瀏覽器客戶端（桌面應用、CLI 工具）不會帶 Origin
+    if not origin:
+        return True
+
+    if origin in _DESKTOP_ORIGINS:
+        return True
+
+    parts = urlsplit(origin)
+    if parts.scheme not in ("http", "https"):
+        return False
+
+    # 埠必須與本服務一致，這能擋掉 http://evil.example 之類的來源
+    try:
+        origin_port = parts.port
+    except ValueError:
+        return False
+    if origin_port != port:
+        return False
+
+    hostname = (parts.hostname or "").lower()
+    if hostname in _LOOPBACK_HOSTS:
+        return True
+
+    # 綁定 0.0.0.0 時無法預先得知對外位址，此時僅以埠相符為準
+    return host in ("0.0.0.0", "::") or hostname == host.lower()
+
+
 # 使用統一的訊息代碼系統
 # 從 ..constants 導入的 get_msg_code 函數會處理所有訊息代碼
 # 舊的 key 會自動映射到新的常量
@@ -62,9 +115,9 @@ def setup_routes(manager: "WebUIManager"):
         if not current_session:
             # 沒有活躍會話時顯示等待頁面
             return manager.templates.TemplateResponse(
+                request,
                 "index.html",
-                {
-                    "request": request,
+                context={
                     "title": "MCP Feedback Enhanced",
                     "has_session": False,
                     "version": __version__,
@@ -76,9 +129,10 @@ def setup_routes(manager: "WebUIManager"):
         layout_mode = load_user_layout_settings()
 
         return manager.templates.TemplateResponse(
+            request,
             "feedback.html",
-            {
-                "request": request,
+            context={
+                "session_id": current_session.session_id,
                 "project_directory": current_session.project_directory,
                 "summary": current_session.summary,
                 "title": "Interactive Feedback - 回饋收集",
@@ -172,7 +226,6 @@ def setup_routes(manager: "WebUIManager"):
                 "project_directory": current_session.project_directory,
                 "summary": current_session.summary,
                 "feedback_completed": current_session.feedback_completed.is_set(),
-                "command_logs": current_session.command_logs,
                 "images_count": len(current_session.images),
             }
         )
@@ -258,6 +311,13 @@ def setup_routes(manager: "WebUIManager"):
     @manager.app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket, lang: str = "zh-TW"):
         """WebSocket 端點 - 重構後移除 session_id 依賴"""
+        # 先驗證 Origin，避免惡意網頁從使用者瀏覽器劫持此連線（CSWSH）
+        origin = websocket.headers.get("origin", "")
+        if not is_allowed_origin(origin, manager.host, manager.port):
+            debug_log(f"拒絕來源不受信任的 WebSocket 連線: {origin!r}")
+            await websocket.close(code=4003, reason="Origin not allowed")
+            return
+
         # 獲取當前活躍會話
         session = manager.get_current_session()
         if not session:
@@ -625,12 +685,6 @@ async def handle_websocket_message(manager: "WebUIManager", session, data: dict)
         images = data.get("images", [])
         settings = data.get("settings", {})
         await session.submit_feedback(feedback, images, settings)
-
-    elif message_type == "run_command":
-        # 執行命令
-        command = data.get("command", "")
-        if command.strip():
-            await session.run_command(command)
 
     elif message_type == "get_status":
         # 獲取會話狀態

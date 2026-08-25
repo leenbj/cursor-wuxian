@@ -13,8 +13,6 @@
     },
     "tabs": {
         "summary": "📋 AI 总结",
-        "commands": "⚡ 命令",
-        "command": "⚡ 命令",
         "sessions": "📋 会话管理",
         "settings": "⚙️ 设置",
         "combined": "📝 工作区",
@@ -60,54 +58,6 @@
         "empty": "目前没有摘要内容",
         "lastupdate": "最后更新",
         "refresh": "刷新"
-    },
-    "commands": {
-        "title": "⚡ 命令执行",
-        "description": "在此执行命令来验证结果或收集更多信息。命令将在项目目录中执行。",
-        "inputLabel": "命令输入",
-        "placeholder": "输入要执行的命令...",
-        "execute": "▶️ 执行",
-        "runButton": "▶️ 执行",
-        "clear": "清除",
-        "output": "命令输出",
-        "outputLabel": "命令输出",
-        "running": "执行中...",
-        "completed": "执行完成",
-        "error": "执行错误",
-        "history": "命令历史",
-        "notConnected": "WebSocket 未连接，无法执行命令",
-        "emptyCommand": "请输入命令",
-        "sendFailed": "发送命令失败",
-        "executing": "正在执行..."
-    },
-    "command": {
-        "title": "⚡ 命令执行",
-        "inputLabel": "命令输入",
-        "placeholder": "输入要执行的命令...",
-        "execute": "▶️ 执行",
-        "runButton": "▶️ 执行",
-        "clear": "清除",
-        "output": "命令输出",
-        "running": "执行中...",
-        "completed": "执行完成",
-        "error": "执行错误",
-        "history": "命令历史",
-        "autoCommand": {
-            "title": "🤖 自动执行命令设置",
-            "description": "设置在特定时机自动执行的命令",
-            "enabled": "启用自动执行命令",
-            "onNewSession": "新会话建立时执行",
-            "onNewSessionPlaceholder": "例如：pwd 或 git status",
-            "onFeedbackSubmit": "提交反馈后执行",
-            "onFeedbackSubmitPlaceholder": "例如：echo '反馈已提交'",
-            "testOnNewSession": "测试新会话命令",
-            "testOnFeedbackSubmit": "测试反馈提交命令",
-            "help": "这些命令会在对应的时机自动执行。留空表示不执行任何命令。"
-        },
-        "autoSettings": {
-            "exampleNewSession": "💡 示例：pwd, git status, ls -la",
-            "exampleFeedback": "💡 示例：date, echo \"Done\", git log -1"
-        }
     },
     "combined": {
         "summaryTitle": "📋 AI 工作摘要",
@@ -365,10 +315,8 @@
             "reconnects": "重连"
         }
     },
-
     "dynamic": {
-        "aiSummary": "测试 Web UI 功能\n\n🎯 **功能测试项目：**\n- Web UI 服务器启动和运行\n- WebSocket 实时通讯\n- 反馈提交功能\n- 图片上传和预览\n- 命令执行功能\n- 智能 Ctrl+V 图片粘贴\n- 多语言界面功能\n\n📋 **测试步骤：**\n1. 测试图片上传（拖拽、选择文件、剪贴板）\n2. 在文本框内按 Ctrl+V 测试智能粘贴\n3. 尝试切换语言（繁中/简中/英文）\n4. 测试命令执行功能\n5. 提交反馈和图片\n\n请测试这些功能并提供反馈！",
-        "terminalWelcome": "欢迎使用交互反馈终端\n========================================\n项目目录: {sessionId}\n输入命令后按 Enter 或点击执行按钮\n支持的命令: ls, dir, pwd, cat, type 等\n\n$ "
+        "aiSummary": "测试 Web UI 功能\n\n🎯 **功能测试项目：**\n- Web UI 服务器启动和运行\n- WebSocket 实时通讯\n- 反馈提交功能\n- 图片上传和预览\n- 智能 Ctrl+V 图片粘贴\n- 多语言界面功能\n\n📋 **测试步骤：**\n1. 测试图片上传（拖拽、选择文件、剪贴板）\n2. 在文本框内按 Ctrl+V 测试智能粘贴\n3. 尝试切换语言（繁中/简中/英文）\n4. 提交反馈和图片\n\n请测试这些功能并提供反馈！"
     },
     "prompts": {
         "management": {

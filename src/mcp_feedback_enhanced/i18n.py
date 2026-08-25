@@ -223,17 +223,11 @@ class I18nManager:
             "settings": "app.settings",
             # 分頁
             "feedback_tab": "tabs.feedback",
-            "command_tab": "tabs.command",
             "images_tab": "tabs.images",
             # 回饋
             "feedback_title": "feedback.title",
             "feedback_description": "feedback.description",
             "feedback_placeholder": "feedback.placeholder",
-            # 命令
-            "command_title": "command.title",
-            "command_description": "command.description",
-            "command_placeholder": "command.placeholder",
-            "command_output": "command.output",
             # 圖片
             "images_title": "images.title",
             "images_select": "images.select",
@@ -256,7 +250,6 @@ class I18nManager:
             "btn_select_files": "buttons.selectFiles",
             "btn_paste_clipboard": "buttons.pasteClipboard",
             "btn_clear_all": "buttons.clearAll",
-            "btn_run_command": "buttons.runCommand",
             # 狀態
             "feedback_submitted": "status.feedbackSubmitted",
             "feedback_cancelled": "status.feedbackCancelled",

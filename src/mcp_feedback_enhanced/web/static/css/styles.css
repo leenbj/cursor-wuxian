@@ -912,8 +912,7 @@ body {
     color: var(--text-primary);
 }
 
-.text-input,
-.command-input {
+.text-input {
     width: 100%;
     max-width: 100%;
     background: var(--bg-primary);
@@ -930,60 +929,11 @@ body {
     box-sizing: border-box;
 }
 
-.text-input:focus,
-.command-input:focus {
+.text-input:focus {
     outline: none;
     border-color: var(--accent-color);
 }
 
-.command-input {
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    min-height: 80px;
-}
-
-/* 新增：單行命令輸入框樣式 */
-.command-input-line {
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 14px;
-    border: 1px solid var(--border-color);
-    transition: border-color 0.3s ease;
-}
-
-.command-input-line:focus {
-    outline: none;
-    border-color: var(--accent-color);
-}
-
-/* 命令輸出區域 */
-.command-output {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 12px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 14px;
-    line-height: 1.4;
-    color: var(--text-primary);
-    white-space: pre-wrap;
-    overflow-y: auto;
-    height: 320px;
-    width: 100%;
-    box-sizing: border-box;
-    /* 添加 terminal 風格 */
-    background: #0f0f0f;
-    border: 2px solid var(--border-color);
-    color: #00ff00;
-    text-shadow: 0 0 5px #00ff00;
-    /* 確保尺寸固定 */
-    flex-shrink: 0;
-    resize: none;
-}
-
-/* Terminal 提示符樣式 */
-.terminal-prompt {
-    color: var(--accent-color);
-    font-weight: bold;
-}
 
 /* 按鈕樣式 */
 .btn {
@@ -1174,19 +1124,6 @@ body {
 
     .tab-buttons {
         flex-wrap: wrap;
-    }
-
-    /* 小屏幕下調整命令輸出區域高度 */
-    .command-output {
-        height: 250px;
-    }
-}
-
-/* 更小屏幕的調整 */
-@media (max-width: 480px) {
-    .command-output {
-        height: 200px;
-        font-size: 12px;
     }
 }
 
@@ -2073,123 +2010,6 @@ textarea:-ms-input-placeholder,
     0% { opacity: 1; }
     50% { opacity: 0.6; }
     100% { opacity: 1; }
-}
-
-/* 自動執行命令設定樣式 */
-.command-auto-settings {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 16px;
-    margin: 16px 0;
-}
-
-.command-auto-settings .settings-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.command-auto-settings .settings-title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.command-auto-settings .settings-content {
-    transition: opacity 0.3s ease;
-}
-
-.command-auto-settings .settings-content.disabled {
-    opacity: 0.5;
-    pointer-events: none;
-}
-
-.auto-command-item {
-    margin-bottom: 20px;
-    padding: 12px;
-    background: var(--bg-tertiary);
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-}
-
-.auto-command-item:last-child {
-    margin-bottom: 0;
-}
-
-.command-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.command-icon {
-    font-size: 18px;
-}
-
-.command-input-wrapper {
-    display: flex;
-    align-items: center;
-    margin: 8px 0;
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 0 12px;
-    transition: border-color 0.3s ease;
-}
-
-.command-input-wrapper:focus-within {
-    border-color: var(--accent-color);
-}
-
-.command-prefix {
-    color: var(--accent-color);
-    font-weight: bold;
-    margin-right: 8px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-}
-
-.auto-command-input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    padding: 8px 0;
-    color: var(--text-primary);
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 14px;
-    outline: none;
-}
-
-.command-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-}
-
-.btn-test {
-    background: var(--info-color);
-    color: white;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-.btn-test:hover {
-    background: #1976d2;
-}
-
-.command-hint {
-    color: var(--text-secondary);
-    font-size: 12px;
 }
 
 .btn-small {
