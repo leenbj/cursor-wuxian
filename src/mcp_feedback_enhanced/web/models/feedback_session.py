@@ -413,12 +413,12 @@ class WebFeedbackSession:
             dict: 回饋結果
         """
         try:
-            # 使用比 MCP 超時稍短的時間（提前處理，避免邊界競爭）
-            # 對於短超時（<30秒），提前1秒；對於長超時，提前5秒
-            if timeout <= 30:
-                actual_timeout = max(timeout - 1, 5)  # 短超時提前1秒，最少5秒
-            else:
-                actual_timeout = timeout - 5  # 長超時提前5秒
+            # 比呼叫端的超時稍早結束，避免與 MCP 層的超時競爭。
+            # 短超時只讓 1 秒，長超時讓 5 秒；下限為 1 秒 ——
+            # 舊版對 timeout<=30 用 max(timeout-1, 5)，在 timeout=1 時反而「延長」到 5 秒，
+            # 與提前結束的本意相反（見 #212）。
+            margin = 5 if timeout > 30 else 1
+            actual_timeout = max(timeout - margin, 1)
             debug_log(
                 f"會話 {self.session_id} 開始等待回饋，超時時間: {actual_timeout} 秒（原始: {timeout} 秒）"
             )

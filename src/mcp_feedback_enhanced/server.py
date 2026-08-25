@@ -112,6 +112,13 @@ SERVER_NAME = "互動式回饋收集 MCP"
 SSH_ENV_VARS = ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"]
 REMOTE_ENV_VARS = ["REMOTE_CONTAINERS", "CODESPACES"]
 
+# interactive_feedback 的 timeout 邊界（秒）
+# 某些客戶端會傳入不合理的小值（見 #212：Cursor 傳過 timeout=1），
+# 導致互動介面還沒來得及使用就超時。這裡在伺服器端鉗制，確保人類有實際可用的時間。
+DEFAULT_FEEDBACK_TIMEOUT = 600
+MIN_FEEDBACK_TIMEOUT = 60
+MAX_FEEDBACK_TIMEOUT = 86400
+
 
 # 初始化 MCP 服務器
 from . import __version__
@@ -425,6 +432,43 @@ def process_images(images_data: list[dict]) -> list[ImageContent]:
     return image_contents
 
 
+def resolve_feedback_timeout(requested: object) -> int:
+    """把呼叫端傳入的 timeout 鉗制到可用範圍
+
+    不使用 pydantic 的 ge/le 驗證，因為那會讓整個 tool call 直接失敗；
+    對 human-in-the-loop 工具來說，讓流程以安全值繼續比中斷更有用（見 #212）。
+
+    參數型別刻意放寬為 object：這個值來自外部 MCP 客戶端，
+    不同客戶端與 FastMCP 版本的轉換行為未必一致，因此在此一併容錯。
+
+    Args:
+        requested: 呼叫端傳入的秒數（容忍非數值型別）
+
+    Returns:
+        int: 鉗制後的秒數
+    """
+    try:
+        value = int(requested)  # type: ignore[call-overload]
+    except (TypeError, ValueError):
+        debug_log(
+            f"timeout 值無法解析（{requested!r}），改用預設 {DEFAULT_FEEDBACK_TIMEOUT} 秒"
+        )
+        return DEFAULT_FEEDBACK_TIMEOUT
+
+    if value < MIN_FEEDBACK_TIMEOUT:
+        debug_log(
+            f"timeout={value} 秒過短，使用者來不及回饋，"
+            f"已提升至 {MIN_FEEDBACK_TIMEOUT} 秒（見 issue #212）"
+        )
+        return MIN_FEEDBACK_TIMEOUT
+
+    if value > MAX_FEEDBACK_TIMEOUT:
+        debug_log(f"timeout={value} 秒過長，已限制為 {MAX_FEEDBACK_TIMEOUT} 秒")
+        return MAX_FEEDBACK_TIMEOUT
+
+    return value
+
+
 # ===== MCP 工具定義 =====
 @mcp.tool()
 async def interactive_feedback(
@@ -432,8 +476,17 @@ async def interactive_feedback(
     summary: Annotated[
         str, Field(description="AI 工作完成的摘要說明")
     ] = "我已完成了您請求的任務。",
-    timeout: Annotated[int, Field(description="等待用戶回饋的超時時間（秒）")] = 600,
-) -> list:
+    timeout: Annotated[
+        int,
+        Field(
+            description=(
+                "等待用戶回饋的超時時間（秒）。"
+                f"有效範圍 {MIN_FEEDBACK_TIMEOUT}–{MAX_FEEDBACK_TIMEOUT}；"
+                "超出範圍會由伺服器端鉗制，因為使用者需要實際可用的回饋時間。"
+            )
+        ),
+    ] = DEFAULT_FEEDBACK_TIMEOUT,
+) -> list[TextContent | ImageContent]:
     """Interactive feedback collection tool for LLM agents.
 
     USAGE RULES:
@@ -446,7 +499,8 @@ async def interactive_feedback(
     Args:
         project_directory: Project directory path for context
         summary: Summary of AI work completed for user review
-        timeout: Timeout in seconds for waiting user feedback (default: 600 seconds)
+        timeout: Timeout in seconds for waiting user feedback.
+            Clamped server-side to a usable range; see resolve_feedback_timeout.
 
     Returns:
         list: List containing TextContent and ImageContent objects representing user feedback
@@ -467,7 +521,10 @@ async def interactive_feedback(
         # 使用 Web 模式
         debug_log("回饋模式: web")
 
-        result = await launch_web_feedback_ui(project_directory, summary, timeout)
+        effective_timeout = resolve_feedback_timeout(timeout)
+        result = await launch_web_feedback_ui(
+            project_directory, summary, effective_timeout
+        )
 
         # 處理取消情況
         if not result:
