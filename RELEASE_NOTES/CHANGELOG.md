@@ -2,6 +2,40 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [v2.6.1] - 2026-08-25 - Security Fix & Maintenance Resumed
+
+### 🌟 Version Highlights
+Removes the known command execution risk and fixes the compatibility break that made fresh
+installs completely unusable. Maintenance has resumed, with scope currently focused on
+security and install-breaking compatibility issues.
+
+### 🔒 Security
+- **Command execution removed** ([#219](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/219)): earlier versions accepted a `run_command` message over the **unauthenticated** WebSocket endpoint `/ws` and executed it. The guard was a shell-metacharacter blocklist, but since execution used `shell=False`, metacharacters were never the risk — `cat`, `curl`, `wget`, `python`, and `powershell` passed straight through. The auto-command feature was also **enabled by default**.
+  - The feature was **removed entirely** (backend handler, session methods, frontend UI, settings, i18n strings) rather than hardened. A blocklist cannot safely permit arbitrary executables.
+  - Added `tests/unit/test_no_command_execution.py` to prevent reintroduction.
+  - Affected versions: **2.6.0 and all earlier**. Please upgrade.
+- **Cross-Site WebSocket Hijacking (CSWSH) fixed**: reported privately as `GHSA-cmr5-gpm3-79vf` (critical) and `GHSA-2wx7-r4rh-f663` (high). Browsers are **not** restricted by the same-origin policy when opening a WebSocket, so a malicious page could make the victim's browser connect to `ws://127.0.0.1:<port>/ws` and send messages — `/ws` accepted any `Origin` and called `accept()` without validation. Combined with `run_command` above, this escalated to remote code execution; the loopback binding did not help, because the browser itself is local.
+  - Fixed with two independent layers: (1) command execution removed entirely, eliminating the escalation path; (2) `/ws` now validates `Origin` **before** `accept()`, allowing only loopback origins on the server's own port, the bound host itself, and desktop WebView schemes. Non-browser clients without an `Origin` header (such as the desktop app) are still permitted, since a cross-origin page cannot suppress the header.
+  - Cross-origin attempts are rejected with HTTP 403 before the handshake completes. `tests/unit/test_websocket_origin.py` uses the exact origins from the reported proofs of concept.
+  - Thanks to both reporters for the detailed analysis and working PoCs.
+
+### 🐛 Bug Fixes
+- **Fixed Web UI returning 500** ([#213](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/213), [#217](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/217), [#221](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/221), [#228](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/228)): newer Starlette changed the `TemplateResponse` signature, so the old call raised `TypeError: unhashable type: 'dict'` and no page would load for anyone installing via `uvx @latest`. Credit to [#220](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/220) (also reported in [#214](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/214), [#215](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/215), [#216](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/216)).
+- **Fixed missing `session_id` in template context**: `feedback.html` needs it to initialize the frontend, but it was never passed.
+- **Fixed image serialization** ([#154](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/154), [#168](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/168), [#180](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/180) and related): switched to standard `mcp.types.ImageContent`. The old implementation returned `fastmcp.utilities.types.Image`, which fails on FastMCP 3.x with `Output validation error: outputSchema defined but no structured output returned`. Verified via a real MCP round-trip for PNG/JPEG/GIF/WebP. Credit to [#171](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/171).
+
+### 🔧 Other Changes
+- **Dependency upper bounds added** so an upstream breaking change cannot silently break installs again. `starlette` is now an explicit direct dependency.
+- **Documentation corrected**: removed the "dramatically reducing platform costs" claim (Cursor moved to token-based pricing, so the premise no longer holds); `MCP_WEB_HOST=0.0.0.0` is no longer recommended and now carries a security warning pointing to SSH port forwarding.
+- Added [SECURITY.md](../SECURITY.md) covering supported versions, known risks, and reporting.
+
+### ⚠️ Known Unfixed Issues
+Pre-existing limitations, outside the current maintenance scope:
+- Web UI and WebSocket have **no authentication** and no Origin validation
+- Pre-existing test failures around session status transitions, i18n environment detection, and cleanup timers
+
+---
+
 ## [v2.6.0] - 2025-06-28 - Intelligent Session Management & Automation Enhancement
 
 ### 🌟 Version Highlights

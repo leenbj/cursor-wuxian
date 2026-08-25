@@ -19,7 +19,13 @@ SSH Remote environment limitations:
 
 ### Step 1: Configure Host and Port
 
-You have to set `MCP_WEB_HOST` environment to `0.0.0.0` to allow port forwarding.
+Keep the default `MCP_WEB_HOST` of `127.0.0.1` and use **SSH port forwarding** to reach the
+Web UI from your local machine.
+
+> ⚠️ Do **not** set `MCP_WEB_HOST=0.0.0.0`. The Web UI and `/ws` endpoint have no
+> authentication, so binding to all interfaces exposes your session content — and lets
+> anyone on the network submit feedback. SSH port forwarding achieves the same result
+> without exposing the service. See [SECURITY.md](../../../SECURITY.md).
 
 MCP Feedback Enhanced uses port **8765** by default, but you can customize the port:
 

@@ -2,6 +2,39 @@
 
 本文件記錄了 **MCP Feedback Enhanced** 的所有版本更新內容。
 
+## [v2.6.1] - 2026-08-25 - 安全修復與維護恢復
+
+### 🌟 版本亮點
+移除已知的命令執行風險，並修復讓新安裝完全無法使用的相容性問題。專案恢復維護，目前範圍聚焦在「安全 + 裝了就壞的相容性」。
+
+### 🔒 安全修復
+- **移除命令執行功能**（[#219](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/219)）：舊版可透過**未認證**的 WebSocket `/ws` 端點發送 `run_command` 訊息並執行任意程序。原本的防護是 shell metacharacter blocklist，但因為使用 `shell=False`，metacharacter 本來就不是風險點——`cat`、`curl`、`wget`、`python`、`powershell` 等可直接執行。且自動執行命令功能**預設為啟用**。
+  - 此功能已**完整移除**（後端處理器、session 方法、前端 UI、設定項、i18n 文案），而非加強 blocklist。blocklist 無法安全地允許任意執行檔。
+  - 新增 `tests/unit/test_no_command_execution.py` 防止重新引入。
+  - 影響版本：**2.6.0 及之前所有版本**。請升級。
+
+- **修復 Cross-Site WebSocket Hijacking（CSWSH）**：私下回報的 `GHSA-cmr5-gpm3-79vf`（critical）與 `GHSA-2wx7-r4rh-f663`（high）。瀏覽器開啟 WebSocket **不受 same-origin policy 限制**，因此惡意網頁可讓使用者的瀏覽器連上 `ws://127.0.0.1:<port>/ws` 並送訊息 —— 舊版 `/ws` 接受任何 Origin 就直接 `accept()`，配合上述 `run_command` 可升級為遠端程式碼執行；綁定 loopback 並不能防止這點，因為瀏覽器本身就在本機。
+  - 修復採兩層獨立防禦：(1) 命令執行已完全移除，升級路徑消失；(2) `/ws` 在 `accept()` **之前**驗證 Origin，僅允許本服務埠上的 loopback 來源、綁定主機自身、以及桌面 WebView scheme；未帶 Origin 的非瀏覽器客戶端（如桌面應用）仍放行，因為跨站頁面無法移除該 header。
+  - 跨站連線在握手完成前即以 HTTP 403 拒絕。`tests/unit/test_websocket_origin.py` 使用回報者 PoC 中的實際來源作為測試案例。
+  - 感謝兩位回報者提供詳盡分析與可運作的 PoC。
+
+### 🐛 問題修復
+- **修復 Web UI 直接回傳 500**（[#213](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/213)、[#217](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/217)、[#221](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/221)、[#228](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/228)）：新版 Starlette 變更 `TemplateResponse` 簽名，舊呼叫方式會拋出 `TypeError: unhashable type: 'dict'`，導致以 `uvx @latest` 安裝的使用者完全無法開啟頁面。感謝 [#220](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/220)（[#214](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/214)、[#215](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/215)、[#216](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/216) 亦回報同一問題）。
+- **修復 `session_id` 未帶入 template**：`feedback.html` 需要它初始化前端，但 context 從未提供。
+- **修復圖片序列化錯誤**（[#154](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/154)、[#168](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/168)、[#180](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/180) 等）：改用標準 `mcp.types.ImageContent`。舊實作回傳 `fastmcp.utilities.types.Image`，在 FastMCP 3.x 會失敗於 `Output validation error: outputSchema defined but no structured output returned`。已用真實 MCP round-trip 驗證 PNG/JPEG/GIF/WebP。感謝 [#171](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/171)。
+
+### 🔧 其他變更
+- **依賴加上版本上限**：避免上游破壞性變更再次讓安裝失效。`starlette` 改為顯式直接依賴。
+- **文件修正**：移除「大幅節省平台成本」宣稱（Cursor 已改為 token 計費，前提不成立）；`MCP_WEB_HOST=0.0.0.0` 不再作為推薦解法，改標示安全警告並建議 SSH 端口轉發。
+- 新增 [SECURITY.md](../SECURITY.md)：維護範圍、已知風險、回報管道。
+
+### ⚠️ 已知未修問題
+以下為既有限制，不在目前的維護範圍內：
+- Web UI 與 WebSocket **無認證機制**、無 Origin 驗證
+- 會話狀態流轉、i18n 環境偵測、cleanup timer 相關的既有測試失敗
+
+---
+
 ## [v2.6.0] - 2025-06-28 - 智能會話管理與自動化功能強化
 
 ### 🌟 版本亮點

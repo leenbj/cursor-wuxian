@@ -6,9 +6,35 @@
 **分支版本：** [Minidoracat](https://github.com/Minidoracat)
 **UI 设计参考：** [sanshao85/mcp-feedback-collector](https://github.com/sanshao85/mcp-feedback-collector)
 
+> ## 📢 维护状态（2026-08）
+>
+> 项目已恢复维护。**请升级到 v2.6.1** — 它修掉了一个命令执行漏洞：
+>
+> ```bash
+> uvx mcp-feedback-enhanced@latest
+> ```
+>
+> **v2.6.1 的重要变更：**
+> - 🔒 **移除命令执行功能**：修复 [#219](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/219)（未认证 WebSocket 可执行任意程序）。原本的 blocklist 只挡 shell metacharacter，但因为使用 `shell=False`，metacharacter 本来就不是风险点——`cat`、`curl`、`wget`、`python` 等可直接执行；且自动执行命令**默认为启用**。此功能已完全移除，不会再提供。详见 [SECURITY.md](SECURITY.md)。
+> - 🔒 **修复 Cross-Site WebSocket Hijacking**（私下报告的 `GHSA-cmr5-gpm3-79vf`、`GHSA-2wx7-r4rh-f663`）：浏览器开启 WebSocket 不受 same-origin policy 限制，恶意网页可让你的浏览器连上本机 `/ws`。现已在 `accept()` 前验证 Origin，跨站连接一律以 403 拒绝。
+> - 🐛 修复新版 Starlette 造成 Web UI 直接 500 的问题（[#213](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/213)、[#217](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/217)、[#221](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/221)、[#228](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/228)）。
+> - 🐛 修复图片序列化错误（[#154](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/154) 等），改用标准 `mcp.types.ImageContent`。
+>
+> **目前维护范围：** 安全问题、以及「装了就坏」的兼容性问题（依赖更新、上游破坏性变更）。
+> 其余范围会依社区反馈调整，详见置顶 discussion。
+>
+> **一件必须讲清楚的事：** 本项目原始卖点是「在 Cursor 按次计费制下合并多轮交互以节省额度」。
+> Cursor 已于 2025 年 6 月改为依 token 用量计费，**这个前提已不成立**
+> （见 [#115](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/115)、[#200](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/200)）。
+> 现在的定位是「在长任务中插入人工检查点」，不再是省额度工具。
+>
+> 另外，MCP 协议与各客户端现已原生支持 **Elicitation**（服务器主动请求用户输入）
+> 与 **MCP Apps**（工具返回交互式 UI）。如果原生能力已满足你的需求，直接用原生的即可 —
+> 若有原生做不到的情境，欢迎到 discussion 告诉我，那会决定接下来修什么。
+
 ## 🎯 核心概念
 
-这是一个 [MCP 服务器](https://modelcontextprotocol.io/)，建立**反馈导向的开发工作流程**，提供**Web UI 和桌面应用程序**双重选择，完美适配本地、**SSH 远程开发环境**与 **WSL (Windows Subsystem for Linux) 环境**。通过引导 AI 与用户确认而非进行推测性操作，可将多次工具调用合并为单次反馈导向请求，大幅节省平台成本并提升开发效率。
+这是一个 [MCP 服务器](https://modelcontextprotocol.io/)，建立**反馈导向的开发工作流程**，提供**Web UI 和桌面应用程序**双重选择，完美适配本地、**SSH 远程开发环境**与 **WSL (Windows Subsystem for Linux) 环境**。通过引导 AI 与用户确认而非进行推测性操作，在长任务中插入人工检查点，降低 AI 跑偏与返工。
 
 **🌐 双重界面架构优势：**
 - 🖥️ **桌面应用程序**：原生跨平台桌面体验，支持 Windows、macOS、Linux
@@ -39,7 +65,6 @@
 ### 📝 智能工作流程
 - **提示词管理**：常用提示词的 CRUD 操作、使用统计、智能排序
 - **自动定时提交**：1-86400 秒弹性计时器，支持暂停、恢复、取消，新增暂停/开始按钮控制
-- **自动执行命令**（v2.6.0）：新建会话和提交后可自动执行预设命令，提升开发效率
 - **会话管理追踪**：本地文件存储、隐私控制、历史导出（支持 JSON、CSV、Markdown 格式）、即时统计、弹性超时设定
 - **连接监控**：WebSocket 状态监控、自动重连、品质指示
 - **AI 工作摘要 Markdown 显示**：支持丰富的 Markdown 语法渲染，包含标题、粗体、代码区块、列表、链接等格式，提升内容可读性
@@ -176,8 +201,8 @@ pip install uv
 | `MCP_LANGUAGE` | 强制指定界面语言 | `zh-TW`/`zh-CN`/`en` | 自动检测 |
 
 **`MCP_WEB_HOST` 说明**：
-- `127.0.0.1`（默认）：仅本地访问，安全性较高
-- `0.0.0.0`：允许远程访问，适用于 SSH 远程开发环境
+- `127.0.0.1`（默认）：仅本地访问，**建议保持此设置**
+- `0.0.0.0`：绑定所有网络接口。⚠️ **不建议**：Web UI 与 `/ws` 端点**没有任何认证机制**，任何能连到该端口的人都能读取会话内容（含项目路径与 AI 摘要）并提交反馈。远程开发请改用 SSH 端口转发（见常见问题）。
 
 **`MCP_LANGUAGE` 说明**：
 - 用于强制指定界面语言，覆盖系统自动检测
@@ -256,7 +281,6 @@ make quick-check                                        # 快速检查并自动�
 📋 **完整版本更新记录：** [RELEASE_NOTES/CHANGELOG.zh-CN.md](RELEASE_NOTES/CHANGELOG.zh-CN.md)
 
 ### 最新版本亮点（v2.6.0）
-- 🚀 **自动执行命令**: 新建会话和提交后可自动执行预设命令，提升工作效率
 - 📊 **会话导出功能**: 支持将会话记录导出为多种格式，方便分享和存档
 - ⏸️ **自动提交控制**: 新增暂停和开始按钮，让用户更好控制自动提交时机
 - 🔔 **系统通知**: 新增系统级通知功能，重要事件即时提醒
@@ -268,34 +292,16 @@ make quick-check                                        # 快速检查并自动�
 
 ### 🌐 SSH Remote 环境问题
 **Q: SSH Remote 环境下浏览器无法启动或无法访问**
-A: 提供两种解决方案：
+A: **建议使用 SSH 端口转发**（安全，不暴露服务）：
 
-**方案一：环境变量设置（v2.5.5 推荐）**
-在 MCP 配置中设置 `"MCP_WEB_HOST": "0.0.0.0"` 允许远程访问：
-```json
-{
-  "mcpServers": {
-    "mcp-feedback-enhanced": {
-      "command": "uvx",
-      "args": ["mcp-feedback-enhanced@latest"],
-      "timeout": 600,
-      "env": {
-        "MCP_WEB_HOST": "0.0.0.0",
-        "MCP_WEB_PORT": "8765"
-      },
-      "autoApprove": ["interactive_feedback"]
-    }
-  }
-}
-```
-然后在本地浏览器打开：`http://[远程主机IP]:8765`
-
-**方案二：SSH 端口转发（传统方法）**
 1. 使用默认配置（`MCP_WEB_HOST`: `127.0.0.1`）
 2. 设置 SSH 端口转发：
    - **VS Code Remote SSH**: 按 `Ctrl+Shift+P` → "Forward a Port" → 输入 `8765`
    - **Cursor SSH Remote**: 手动添加端口转发规则（端口 8765）
 3. 在本地浏览器打开：`http://localhost:8765`
+
+> ⚠️ 旧版 README 曾建议设置 `MCP_WEB_HOST=0.0.0.0` 直接对外开放。**已不再建议**：
+> Web UI 与 `/ws` 端点没有认证机制，对外绑定等同于让同网段任何人读取你的会话内容并提交反馈。
 
 详细解决方案请参考：[SSH Remote 环境使用指南](docs/zh-CN/ssh-remote/browser-launch-issues.md)
 

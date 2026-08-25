@@ -6,9 +6,38 @@
 **Enhanced Fork:** [Minidoracat](https://github.com/Minidoracat)
 **UI Design Reference:** [sanshao85/mcp-feedback-collector](https://github.com/sanshao85/mcp-feedback-collector)
 
+> ## 📢 Maintenance Status (2026-08)
+>
+> The project is maintained again. **Please upgrade to v2.6.1** — it fixes a command execution vulnerability:
+>
+> ```bash
+> uvx mcp-feedback-enhanced@latest
+> ```
+>
+> **What changed in v2.6.1:**
+> - 🔒 **Command execution removed** — fixes [#219](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/219) (unauthenticated WebSocket could execute arbitrary programs). The old blocklist only caught shell metacharacters, but since execution used `shell=False` metacharacters were never the risk — `cat`, `curl`, `wget`, `python` passed straight through, and auto-command was **enabled by default**. The feature is gone for good. See [SECURITY.md](SECURITY.md).
+> - 🔒 **Cross-Site WebSocket Hijacking fixed** (reported privately as `GHSA-cmr5-gpm3-79vf`, `GHSA-2wx7-r4rh-f663`): browsers are not restricted by the same-origin policy when opening a WebSocket, so a malicious page could make your browser connect to the local `/ws`. `Origin` is now validated before `accept()`, and cross-origin attempts are rejected with 403.
+> - 🐛 Fixed the Starlette breaking change that made the Web UI return 500 ([#213](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/213), [#217](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/217), [#221](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/221), [#228](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/228)).
+> - 🐛 Fixed image serialization ([#154](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/154) and related) by switching to standard `mcp.types.ImageContent`.
+>
+> **Current maintenance scope:** security issues, and compatibility breaks that make installs
+> unusable (dependency updates, upstream breaking changes). Anything beyond that will be decided
+> from community feedback — see the pinned discussion.
+>
+> **One thing worth stating plainly:** the original selling point was "consolidate multiple
+> round-trips into a single Cursor request to save quota". Cursor moved to token-based usage
+> pricing in June 2025, so that premise **no longer holds**
+> (see [#115](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/115), [#200](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/200)).
+> The positioning is now "insert human checkpoints into long-running tasks" — not a quota-saving tool.
+>
+> Also note MCP and its clients now natively support **Elicitation** (server-initiated requests
+> for user input) and **MCP Apps** (tools returning interactive UI). If native capabilities cover
+> your needs, just use those — if there's something native can't do, please say so in the
+> discussion. That's what will decide what gets fixed next.
+
 ## 🎯 Core Concept
 
-This is an [MCP server](https://modelcontextprotocol.io/) that establishes **feedback-oriented development workflows**, providing **Web UI and Desktop Application** dual interface options, perfectly adapting to local, **SSH Remote environments**, and **WSL (Windows Subsystem for Linux) environments**. By guiding AI to confirm with users rather than making speculative operations, it can consolidate multiple tool calls into a single feedback-oriented request, dramatically reducing platform costs and improving development efficiency.
+This is an [MCP server](https://modelcontextprotocol.io/) that establishes **feedback-oriented development workflows**, providing **Web UI and Desktop Application** dual interface options, perfectly adapting to local, **SSH Remote environments**, and **WSL (Windows Subsystem for Linux) environments**. By guiding AI to confirm with users rather than making speculative operations, it inserts human checkpoints into long-running tasks, reducing drift and rework.
 
 **🌐 Dual Interface Architecture Advantages:**
 - 🖥️ **Desktop Application**: Native cross-platform desktop experience, supporting Windows, macOS, Linux
@@ -39,7 +68,6 @@ This is an [MCP server](https://modelcontextprotocol.io/) that establishes **fee
 ### 📝 Smart Workflow
 - **Prompt Management**: CRUD operations for common prompts, usage statistics, intelligent sorting
 - **Auto-Timed Submit**: 1-86400 second flexible timer, supports pause, resume, cancel with new pause/resume button controls
-- **Auto Command Execution** (v2.6.0): Automatically execute preset commands after creating new sessions or commits for improved development efficiency
 - **Session Management & Tracking**: Local file storage, privacy controls, history export (supports JSON, CSV, Markdown formats), real-time statistics, flexible timeout settings
 - **Connection Monitoring**: WebSocket status monitoring, auto-reconnection, quality indicators
 - **AI Work Summary Markdown Display**: Support for rich Markdown syntax rendering including headers, bold text, code blocks, lists, links and other formats for enhanced content readability
@@ -176,8 +204,8 @@ follow mcp-feedback-enhanced instructions
 | `MCP_LANGUAGE` | Force UI language | `zh-TW`/`zh-CN`/`en` | Auto-detect |
 
 **`MCP_WEB_HOST` Explanation**:
-- `127.0.0.1` (default): Local access only, higher security
-- `0.0.0.0`: Allow remote access, suitable for SSH remote development environments
+- `127.0.0.1` (default): Local access only — **keep this setting**
+- `0.0.0.0`: Binds all interfaces. ⚠️ **Not recommended**: the Web UI and `/ws` endpoint have **no authentication**, so anyone who can reach the port can read session content (including project paths and AI summaries) and submit feedback. Use SSH port forwarding instead (see Common Issues).
 
 **`MCP_LANGUAGE` Explanation**:
 - Used to force the interface language, overriding automatic system detection
@@ -256,7 +284,6 @@ make quick-check                                        # Quick check and auto-f
 📋 **Complete Version History:** [RELEASE_NOTES/CHANGELOG.en.md](RELEASE_NOTES/CHANGELOG.en.md)
 
 ### Latest Version Highlights (v2.6.0)
-- 🚀 **Auto Command Execution**: Automatically execute preset commands after creating new sessions or commits, improving workflow efficiency
 - 📊 **Session Export Feature**: Support exporting session records to multiple formats for easy sharing and archiving
 - ⏸️ **Auto-commit Control**: Added pause and resume buttons for better control over auto-commit timing
 - 🔔 **System Notifications**: System-level notifications for important events with real-time alerts
@@ -268,34 +295,16 @@ make quick-check                                        # Quick check and auto-f
 
 ### 🌐 SSH Remote Environment Issues
 **Q: Browser cannot launch or access in SSH Remote environment**
-A: Two solutions available:
+A: **Use SSH port forwarding** (secure, nothing exposed):
 
-**Solution 1: Environment Variable Setting (v2.5.5 Recommended)**
-Set `"MCP_WEB_HOST": "0.0.0.0"` in MCP configuration to allow remote access:
-```json
-{
-  "mcpServers": {
-    "mcp-feedback-enhanced": {
-      "command": "uvx",
-      "args": ["mcp-feedback-enhanced@latest"],
-      "timeout": 600,
-      "env": {
-        "MCP_WEB_HOST": "0.0.0.0",
-        "MCP_WEB_PORT": "8765"
-      },
-      "autoApprove": ["interactive_feedback"]
-    }
-  }
-}
-```
-Then open in local browser: `http://[remote-host-IP]:8765`
-
-**Solution 2: SSH Port Forwarding (Traditional Method)**
 1. Use default configuration (`MCP_WEB_HOST`: `127.0.0.1`)
 2. Set up SSH port forwarding:
    - **VS Code Remote SSH**: Press `Ctrl+Shift+P` → "Forward a Port" → Enter `8765`
    - **Cursor SSH Remote**: Manually add port forwarding rule (port 8765)
 3. Open in local browser: `http://localhost:8765`
+
+> ⚠️ Older READMEs recommended `MCP_WEB_HOST=0.0.0.0` to expose the service directly. **No longer recommended**:
+> the Web UI and `/ws` endpoint have no authentication, so binding publicly lets anyone on the network read your session and submit feedback.
 
 For detailed solutions, refer to: [SSH Remote Environment Usage Guide](docs/en/ssh-remote/browser-launch-issues.md)
 

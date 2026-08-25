@@ -1,5 +1,12 @@
 # MCP Feedback Enhanced 架構文檔
 
+> ⚠️ **這些架構文件描述 v2.6.0 之前的架構，自 v2.6.1 起未再更新。**
+>
+> 主要差異：**命令執行功能已於 v2.6.1 完整移除**（見 [#219](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/219) 與 [SECURITY.md](../../SECURITY.md)）。
+> 文件中所有關於 `run_command`、命令輸出、自動執行命令、命令分頁、`command_logs` 欄位的敘述**皆已不適用**。
+>
+> 目前維護範圍聚焦在安全與相容性，因此這些文件暫不同步更新，保留作為歷史參考。
+
 ## 📋 文檔索引
 
 本目錄包含 MCP Feedback Enhanced 專案的完整架構文檔，提供深入的技術分析和設計說明。
