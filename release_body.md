@@ -1,4 +1,4 @@
-# Release v2.6.0 - Latest Release
+# Release v2.6.1 - 2026-08-25 - Security Fix & Maintenance Resumed
 
 ## 🌟 Key Highlights
 
@@ -23,7 +23,7 @@
 uvx mcp-feedback-enhanced@latest
 
 # This specific version / 此特定版本
-uvx mcp-feedback-enhanced@v2.6.0
+uvx mcp-feedback-enhanced@v2.6.1
 ```
 
 ## 🔗 Links
