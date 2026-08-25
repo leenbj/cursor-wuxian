@@ -85,7 +85,7 @@ jobs:
 
     - name: Checkout code
       if: steps.check_platform.outputs.should_build == 'true'
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Install Rust
       if: steps.check_platform.outputs.should_build == 'true'
@@ -95,7 +95,7 @@ jobs:
 
     - name: Install uv
       if: steps.check_platform.outputs.should_build == 'true'
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v10
       with:
         version: "latest"
 
@@ -109,7 +109,7 @@ jobs:
 
     - name: Cache Rust dependencies
       if: steps.check_platform.outputs.should_build == 'true'
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: |
           ~/.cargo/registry
@@ -173,7 +173,7 @@ jobs:
 
     - name: Upload desktop binary
       if: ${{ steps.check_platform.outputs.should_build == 'true' && github.event.inputs.upload_artifacts != 'false' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: desktop-${{ matrix.name }}
         path: src-tauri/target/${{ matrix.target }}/release/${{ matrix.binary }}
@@ -271,7 +271,7 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 0
@@ -282,7 +282,7 @@ jobs:
         git config --local user.name "GitHub Action"
 
     - name: Download all desktop artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: desktop-artifacts
 
