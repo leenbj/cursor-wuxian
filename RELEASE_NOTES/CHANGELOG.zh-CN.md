@@ -2,6 +2,22 @@
 
 本文件记录了 **MCP Feedback Enhanced** 的所有版本更新内容。
 
+## [v2.6.2] - 2026-08-25 - timeout 钳制与工具返回契约
+
+### 🐛 问题修复
+- **钳制 `interactive_feedback` 的 timeout**（[#212](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/212)）：客户端有时会传入不合理的小值 —— 报告中 Cursor 传过 `timeout=1`，用户还没看清界面就「操作超时」。现在服务端会钳制到 60–86400 秒。选择钳制而非 pydantic 的 `ge`/`le` 验证，是因为验证失败会让整个 tool call 中断；对 human-in-the-loop 工具来说，以安全值继续比中断更有用。
+- **修正 `wait_for_feedback` 的提前结束逻辑**：旧版对 `timeout <= 30` 使用 `max(timeout - 1, 5)`，在 `timeout=1` 时反而把等待「延长」到 5 秒，与提前结束、避免与 MCP 层超时竞争的本意相反。
+
+### 🔧 其他变更
+- **精确声明工具返回类型**（由裸 `list` 改为 `list[TextContent | ImageContent]`），与 [#234](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/234) 相关。模糊的 `list` 让 FastMCP 无法判断内容类型，只能生成 wrap-result 的 `outputSchema`（`{"result": {"type": "array"}}` 加上 `x-fastmcp-wrap-result`），并把 content blocks 额外包成 `structuredContent`。声明精确类型后 FastMCP 正确识别为 content blocks，该 schema 消失。
+  - 这**不等于** #234 报告的违规已重现。实测 FastMCP 3.4.7 下，修复前后 `interactive_feedback` 与 `get_system_info` 的 `CallToolResult` 都含 schema 要求的 `content` 字段。完整调查说明留在该 issue。
+
+### ✅ 测试
+- `test_feedback_timeout.py` —— 钳制边界、坏类型容错、margin 不得延长等待
+- `test_tool_contract.py` —— 守住返回注解，避免退回裸 `list`
+
+---
+
 ## [v2.6.1] - 2026-08-25 - 安全修复与维护恢复
 
 ### 🌟 版本亮点

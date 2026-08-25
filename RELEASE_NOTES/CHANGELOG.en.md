@@ -2,6 +2,22 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [v2.6.2] - 2026-08-25 - Timeout Clamping & Tool Contract
+
+### 🐛 Bug Fixes
+- **Clamped `interactive_feedback` timeout** ([#212](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/212)): clients sometimes pass an unusably small value — the report shows Cursor passing `timeout=1`, so the feedback UI expired before it could be used. The server now clamps to 60–86400 seconds. Clamping was chosen over pydantic `ge`/`le` validation because a validation failure aborts the whole tool call; for a human-in-the-loop tool, continuing with a safe value is more useful than failing.
+- **Fixed the early-exit margin in `wait_for_feedback`**: the old logic used `max(timeout - 1, 5)` for `timeout <= 30`, which *extended* a 1-second timeout to 5 seconds — the opposite of finishing early to avoid racing the MCP-layer timeout.
+
+### 🔧 Other Changes
+- **Declared a precise tool return type** (`list[TextContent | ImageContent]` instead of bare `list`), related to [#234](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/234). A bare `list` gave FastMCP nothing to work with, so it generated a wrap-result `outputSchema` (`{"result": {"type": "array"}}` plus `x-fastmcp-wrap-result`) and additionally wrapped content blocks into `structuredContent`. With the precise annotation FastMCP recognises content blocks and that schema is gone.
+  - This does **not** mean the violation in #234 was reproduced. Under FastMCP 3.4.7, both before and after this change, `CallToolResult` from `interactive_feedback` and `get_system_info` contained the schema-required `content` field. See the issue for the full investigation.
+
+### ✅ Tests
+- `test_feedback_timeout.py` — clamp bounds, bad-type tolerance, and that the margin never extends the wait
+- `test_tool_contract.py` — guards the return annotation against regressing to a bare `list`
+
+---
+
 ## [v2.6.1] - 2026-08-25 - Security Fix & Maintenance Resumed
 
 ### 🌟 Version Highlights
