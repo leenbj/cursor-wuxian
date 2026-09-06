@@ -2,7 +2,11 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
-## [Unreleased]
+## [v2.7.1] - 2026-09-06 - MCP_LANGUAGE Precedence & Linux Desktop Compatibility
+
+### 🌟 Highlights
+- `MCP_LANGUAGE` now truly forces the UI language — it is no longer overridden by a language previously saved from the UI (#189).
+- The Linux desktop binary now runs on Ubuntu 22.04 / Debian 12 and newer (glibc requirement lowered from 2.39 to 2.34, #165).
 
 ### 🐛 Bug Fixes
 - **`MCP_LANGUAGE` now has the highest priority** ([#189](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/189)): the README described it as "force UI language", yet the detection order put the language saved from the UI ahead of it, so `MCP_LANGUAGE=zh-CN` could still render Traditional Chinese. The order is swapped; with the variable set, the in-UI language picker only applies to the current session.

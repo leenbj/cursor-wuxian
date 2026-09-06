@@ -2,7 +2,11 @@
 
 本文件記錄了 **MCP Feedback Enhanced** 的所有版本更新內容。
 
-## [Unreleased]
+## [v2.7.1] - 2026-09-06 - MCP_LANGUAGE 優先序與 Linux 桌面相容性
+
+### 🌟 版本亮點
+- `MCP_LANGUAGE` 真正成為強制指定——不再被介面中先前保存的語言蓋掉（#189）。
+- Linux 桌面 binary 可在 Ubuntu 22.04 / Debian 12 以上執行（glibc 需求由 2.39 降至 2.34，#165）。
 
 ### 🐛 問題修復
 - **`MCP_LANGUAGE` 改為最高優先**（[#189](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/189)）：README 把它描述為「強制指定介面語言」，但偵測順序卻讓介面中保存的語言排在它前面，設了 `MCP_LANGUAGE=zh-CN` 仍會顯示繁中。順序對調；設定環境變數後，介面中的語言選擇只在當次會話生效。
