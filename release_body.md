@@ -1,8 +1,8 @@
-# Release v2.7.2 - 2026-09-07 - Explicit Wrap-up When Nobody Answers
+# Release v2.8.0 - 2026-09-07 - Desktop Application Enters Maintenance-Only
 
 ## 🌟 Key Highlights
-- On timeout or when the user closes the UI, the tool now returns an explicit "no user response — finish the task" instruction, and the tool description's usage rules allow stopping in that case, so clients no longer treat it as a generic error and retry forever (#125).
-- Closing the feedback tab/window ends the wait after a 75-second grace period instead of blocking until the timeout (10 minutes by default) (#162).
+- The desktop application (Tauri shell) is **maintenance-only** from this release: no new features, only security fixes and "cannot launch at all" compatibility fixes, scheduled for removal in v3. The binaries still ship with this release; to keep using it, pin the version in your IDE's MCP configuration (see "Desktop application maintenance status" in the README).
+- When the desktop shell cannot start (quarantined by antivirus, glibc too old, blocked by Gatekeeper, exits right after launch) the server no longer waits silently until the timeout: the process falls back to the browser and prints the URL to stderr.
 
 ## 🌐 Detailed Release Notes
 
@@ -24,7 +24,7 @@
 uvx mcp-feedback-enhanced@latest
 
 # This specific version / 此特定版本
-uvx mcp-feedback-enhanced@v2.7.2
+uvx mcp-feedback-enhanced@v2.8.0
 ```
 
 ## 🔗 Links
