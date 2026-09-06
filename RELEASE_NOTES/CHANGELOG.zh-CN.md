@@ -2,7 +2,11 @@
 
 本文件记录了 **MCP Feedback Enhanced** 的所有版本更新内容。
 
-## [Unreleased] - 升级至 fastmcp 4 / mcp 2
+## [v2.7.0] - 2026-09-06 - 升级至 fastmcp 4 / mcp 2
+
+### 🌟 版本亮点
+- 升级至 fastmcp 4.x 与 MCP Python SDK 2.x；服务端对旧协议客户端保持兼容，工具与返回格式不变。
+- 修正 `ResourceManager` 临时文件清理的边界条件，消除一个随机失败的测试。
 
 ### 🔧 其他变更
 - **升级 `fastmcp` 至 4.x、`mcp` 至 2.x**（取代 renovate [#239](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/239)、[#240](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/240)）：mcp 1.x 与 fastmcp 3.x 已进入仅收安全修补的维护模式。fastmcp 4 依赖 `mcp>=2,<3`，两者必须一起升级 —— 只合并其中一个会让依赖无法解析、包装不起来（与 #213/#217/#221/#228 同类问题）。服务端代码只需把 `ImageContent` 的构造参数改为 mcp 2 的正式字段名 `mime_type`；wire 格式仍为 `mimeType`。以 stdio 实测 `list_tools`／`get_system_info`，旧协议（2024-11-05）客户端的集成测试全部通过。

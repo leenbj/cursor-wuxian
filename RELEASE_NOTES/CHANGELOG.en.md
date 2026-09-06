@@ -2,7 +2,11 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
-## [Unreleased] - Upgrade to fastmcp 4 / mcp 2
+## [v2.7.0] - 2026-09-06 - Upgrade to fastmcp 4 / mcp 2
+
+### 🌟 Highlights
+- Upgraded to fastmcp 4.x and MCP Python SDK 2.x; the server still serves legacy-protocol clients, and tool contracts and return shapes are unchanged.
+- Fixed a boundary condition in `ResourceManager` temp-file cleanup that caused a flaky test.
 
 ### 🔧 Other Changes
 - **Upgraded `fastmcp` to 4.x and `mcp` to 2.x** (supersedes renovate [#239](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/239) and [#240](https://github.com/Minidoracat/mcp-feedback-enhanced/pull/240)): mcp 1.x and fastmcp 3.x are now in security-fix-only maintenance mode. fastmcp 4 depends on `mcp>=2,<3`, so the two must move together — merging only one leaves the dependency set unresolvable and the package uninstallable (same failure class as #213/#217/#221/#228). The only server-side change is constructing `ImageContent` with mcp 2's canonical field name `mime_type`; the wire format is still `mimeType`. Verified `list_tools`/`get_system_info` over stdio, and the integration tests using a legacy-protocol (2024-11-05) client all pass.
