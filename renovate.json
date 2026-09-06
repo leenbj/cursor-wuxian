@@ -10,6 +10,7 @@
   "prHourlyLimit": 2,
   "rebaseWhen": "conflicted",
   "commitMessagePrefix": "⬆️",
+  "rangeStrategy": "widen",
   "vulnerabilityAlerts": {
     "enabled": true,
     "schedule": ["at any time"],
