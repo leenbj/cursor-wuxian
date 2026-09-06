@@ -18,8 +18,8 @@ name = "mcp-feedback-enhanced-desktop"
 path = "src/main.rs"
 
 [dependencies]
-# Tauri 核心依賴
-tauri = { version = "2.2.1", features = ["custom-protocol"] }
+# Tauri 核心依賴（下限為 OSV 記錄的最後一個漏洞修補版本，避免 renovate 逐個漏洞開 PR）
+tauri = { version = "2.11.1", features = ["custom-protocol"] }
 tauri-plugin-shell = "2.2.1"
 
 # PyO3 用於 Python 綁定
@@ -32,7 +32,7 @@ serde = { version = "1.0.1", features = ["derive"] }
 serde_json = "1.0.1"
 
 # 異步運行時
-tokio = { version = "1.38.2", features = ["full"] }
+tokio = { version = "1.44.2", features = ["full"] }
 
 # 日誌記錄
 log = "0.4.1"
