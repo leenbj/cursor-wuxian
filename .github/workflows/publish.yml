@@ -29,6 +29,11 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # PyPI Trusted Publishing（OIDC）：PyPI 端信任本 repo 的 publish.yml + pypi environment，
+    # 不再使用長效 API token；id-token: write 讓 GitHub 發 OIDC token 給 PyPI。
+    environment:
+      name: pypi
+      url: https://pypi.org/project/mcp-feedback-enhanced/
     permissions:
       contents: write
       id-token: write
@@ -463,9 +468,6 @@ jobs:
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
 
 
 
