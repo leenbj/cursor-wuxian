@@ -155,7 +155,14 @@ class TestI18NEnvironmentIntegration:
 
         # 保存原始環境變數
         original_env = {}
-        env_vars = ["LANG", "LANGUAGE", "LC_ALL", "LC_MESSAGES"]
+        env_vars = [
+            "LANG",
+            "LANGUAGE",
+            "LC_ALL",
+            "LC_MESSAGES",
+            "MCP_LANGUAGE",
+            "MCP_TEST_MODE",
+        ]
         for var in env_vars:
             original_env[var] = os.environ.get(var)
 
@@ -168,22 +175,27 @@ class TestI18NEnvironmentIntegration:
                 {"LANG": "zh_TW.UTF-8", "expected": "zh-TW"},
                 {"LANG": "zh_CN.UTF-8", "expected": "zh-CN"},
                 {"LANG": "en_US.UTF-8", "expected": "en"},
-                {"LANG": "ja_JP.UTF-8", "expected": "en"},  # 不支援的語言應回退
+                {
+                    "LANG": "ja_JP.UTF-8",
+                    "expected": "zh-TW",
+                },  # 不支援的語言回退到預設（繁中）
+                # MCP_LANGUAGE 是強制指定，必須壓過介面保存的設定（#189）
+                {"saved": "zh-TW", "MCP_LANGUAGE": "zh-CN", "expected": "zh-CN"},
+                # 沒有 MCP_LANGUAGE 時，介面保存的設定仍高於 LANG
+                {"saved": "en", "LANG": "zh_TW.UTF-8", "expected": "en"},
             ]
 
             for test_case in test_cases:
                 # 清理環境變數
                 for var in env_vars:
                     os.environ.pop(var, None)
-                # 也清理 MCP_LANGUAGE
-                os.environ.pop("MCP_LANGUAGE", None)
 
                 # 設置測試模式，禁用系統語言檢測
                 os.environ["MCP_TEST_MODE"] = "true"
 
                 # 設置測試環境
                 for key, value in test_case.items():
-                    if key != "expected":
+                    if key not in ("expected", "saved"):
                         os.environ[key] = value
 
                 # 創建新的管理器實例，並清理可能的保存設定
@@ -194,6 +206,8 @@ class TestI18NEnvironmentIntegration:
                     # 臨時修改配置文件路徑，避免使用真實的用戶配置
                     manager = I18nManager()
                     manager._config_file = Path(temp_dir) / "test_language.json"
+                    if "saved" in test_case:
+                        manager.save_language(test_case["saved"])
 
                     # 修復 attr-defined 錯誤 - 使用正確的方法名
                     detected = manager._detect_language()

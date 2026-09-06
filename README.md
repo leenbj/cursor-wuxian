@@ -214,8 +214,8 @@ follow mcp-feedback-enhanced instructions
   - `zh-CN`: Simplified Chinese
   - `en`: English
 - Language detection priority:
-  1. User-saved language settings in the interface (highest priority)
-  2. `MCP_LANGUAGE` environment variable
+  1. `MCP_LANGUAGE` environment variable (highest priority; when set, the language picker in the UI only applies to the current session)
+  2. User-saved language settings in the interface
   3. System environment variables (LANG, LC_ALL, etc.)
   4. System default language
   5. Fallback to default language (Traditional Chinese)

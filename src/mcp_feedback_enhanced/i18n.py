@@ -73,15 +73,15 @@ class I18nManager:
 
     def _detect_language(self) -> str:
         """自動偵測語言"""
-        # 1. 優先使用用戶保存的語言設定
-        saved_lang = self._load_saved_language()
-        if saved_lang and saved_lang in self._supported_languages:
-            return saved_lang
-
-        # 2. 檢查環境變數
+        # 1. MCP_LANGUAGE 是「強制指定」，優先於介面中保存的設定（見 #189）
         env_lang = os.getenv("MCP_LANGUAGE", "").strip()
         if env_lang and env_lang in self._supported_languages:
             return env_lang
+
+        # 2. 用戶在介面中保存的語言設定
+        saved_lang = self._load_saved_language()
+        if saved_lang and saved_lang in self._supported_languages:
+            return saved_lang
 
         # 3. 檢查其他環境變數（LANG, LC_ALL 等）
         for env_var in ["LANG", "LC_ALL", "LC_MESSAGES", "LANGUAGE"]:
