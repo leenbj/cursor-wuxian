@@ -11,6 +11,7 @@
 
 ### 🔧 其他变更
 - 修正 renovate 配置警告（`vulnerabilityAlerts.prPriority` 不合法，改以 `isVulnerabilityAlert` packageRule 表达）。
+- 依赖下限一次提高到 OSV 记录的最后漏洞修补版本（aiohttp 3.14.3、starlette 1.3.1、jinja2 3.1.6、tauri 2.11.1、tokio 1.44.2 等），实际锁定版本不变；renovate 改用 `rangeStrategy=widen`，范围内的更新不再逐个 patch 提高下限。
 
 ---
 

@@ -11,6 +11,7 @@ This document records all version updates for **MCP Feedback Enhanced**.
 
 ### 🔧 Other Changes
 - Fixed the renovate config warning (`vulnerabilityAlerts.prPriority` is not allowed; expressed via an `isVulnerabilityAlert` packageRule instead).
+- Raised dependency lower bounds in one go to the last vulnerability-fix versions recorded by OSV (aiohttp 3.14.3, starlette 1.3.1, jinja2 3.1.6, tauri 2.11.1, tokio 1.44.2, …); resolved versions are unchanged. Renovate now uses `rangeStrategy=widen`, so in-range updates no longer bump the lower bound on every patch.
 
 ---
 
