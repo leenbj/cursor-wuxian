@@ -2,6 +2,28 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [v2.8.0] - 2026-09-07 - Desktop Application Enters Maintenance-Only
+
+### 🌟 Highlights
+- The desktop application (Tauri shell) is **maintenance-only** from this release: no new features, only security fixes and "cannot launch at all" compatibility fixes, scheduled for removal in v3. The binaries still ship with this release; to keep using it, pin the version in your IDE's MCP configuration (see "Desktop application maintenance status" in the README).
+- When the desktop shell cannot start (quarantined by antivirus, glibc too old, blocked by Gatekeeper, exits right after launch) the server no longer waits silently until the timeout: the process falls back to the browser and prints the URL to stderr.
+
+### 🐛 Bug Fixes
+- **The desktop-mode browser fallback never worked**: on `launch_desktop_app` failure the code called `open_browser`, which skipped itself because of the very same `MCP_DESKTOP_MODE` variable, leaving the user with no UI at all until the timeout returned "no user response". The fallback now lives at the single dispatch point: desktop launch fails → drop `MCP_DESKTOP_MODE` for this process → use the existing `smart_open_browser` (active-tab detection and session-update notification included), so every later call goes straight to the web UI without retrying the desktop shell or opening another tab; restarting the MCP server re-reads the IDE configuration and retries the desktop shell.
+- **A native process that exits right after launch now counts as a launch failure**: both Python launchers only did `Popen` and slept two seconds without checking the exit code, so a binary quarantined by Defender or missing glibc was still reported as "started". Exiting within the observation window is now a failure (with exit code and stderr tail) handed to the fallback above.
+- **Browser launch failure is no longer silent**: when `webbrowser.open` returns False (e.g. a headless SSH host) or all three WSL launch methods fail, the URL is printed to stderr unconditionally so the user can open it manually, instead of only appearing with `MCP_DEBUG=true`.
+
+### 🔧 Other Changes
+- `build-desktop.yml` trigger paths exclude `src-tauri/python/**`: pure-Python launcher changes no longer trigger the four-platform native rebuild and binary commit.
+- The two launcher copies (`src/mcp_feedback_enhanced/desktop_app/` and `src-tauri/python/`) are now identical, so `build_desktop.py` no longer reverts the shipped copy to the older code when it copies.
+- README (three languages) gains a "Desktop application maintenance status" section with migration options; SECURITY.md adds the desktop component scope and splits the support table into "latest 2.x" vs "pinned older releases receive no back-ports".
+- This release does **not** touch Rust, the native binaries, the desktop WebView Origin allow-list on `/ws`, or the renovate configuration.
+
+### ✅ Tests
+- `test_desktop_fallback.py` — with the desktop module missing the URL really reaches the browser and the process leaves desktop mode; a second call reuses the existing tab instead of retrying the desktop shell; a healthy desktop shell never touches the browser; a native process exiting right after launch is a failure; a browser that cannot be opened prints the URL to stderr. The tests only intercept the lowest-level `webbrowser.open` and keep the real desktop-mode guard; four of the five were confirmed failing before the fix.
+
+---
+
 ## [v2.7.2] - 2026-09-07 - Explicit Wrap-up When Nobody Answers
 
 ### 🌟 Highlights

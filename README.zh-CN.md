@@ -37,12 +37,9 @@
 这是一个 [MCP 服务器](https://modelcontextprotocol.io/)，建立**反馈导向的开发工作流程**，提供**Web UI 和桌面应用程序**双重选择，完美适配本地、**SSH 远程开发环境**与 **WSL (Windows Subsystem for Linux) 环境**。通过引导 AI 与用户确认而非进行推测性操作，在长任务中插入人工检查点，降低 AI 跑偏与返工。
 
 **🌐 双重界面架构优势：**
-- 🖥️ **桌面应用程序**：原生跨平台桌面体验，支持 Windows、macOS、Linux
-- 🌐 **Web UI 界面**：无需 GUI 依赖，适合远程和 WSL 环境
-- 🔧 **灵活部署**：根据环境需求选择最适合的界面模式
+- 🌐 **Web UI 界面**：无需 GUI 依赖，适合本地、远程和 WSL 环境（主要维护的界面）
+- 🖥️ **桌面应用程序**：加载同一个 Web UI 的 Tauri 壳，支持 Windows、macOS、Linux（**v2.8.0 起仅维护、不再新增功能，预计 v3 移除**，见下方「桌面应用程序维护状态」）
 - 📦 **统一功能**：两种界面提供完全相同的功能体验
-
-**🖥️ 桌面应用程序：** v2.5.0 新增跨平台桌面应用程序支持，基于 Tauri 框架，支持 Windows、macOS、Linux 三大平台，提供原生桌面体验。
 
 **支持平台：** [Cursor](https://www.cursor.com) | [Cline](https://cline.bot) | [Windsurf](https://windsurf.com) | [Augment](https://www.augmentcode.com) | [Trae](https://www.trae.ai)
 
@@ -175,6 +172,13 @@ pip install uv
   }
 }
 ```
+
+> **⚠️ 桌面应用程序维护状态（v2.8.0 起）**
+>
+> 桌面应用程序进入 **maintenance-only**：不再新增功能（例如窗口置顶、常驻、提交后保留窗口），只修安全问题与「完全无法启动」的兼容性问题；预计于 v3 移除，届时会在发布说明标明最后一个含桌面 binary 的版本。理由：它只是加载 Web UI 的一层 Tauri 壳，却占了包八成体积、需要三平台 CI 与签名，而反馈的问题多是无法在 CI 重现的平台兼容性（杀毒误判、glibc、Gatekeeper、高 DPI、多显示器）。
+>
+> - **想继续用桌面模式**：把 IDE 的 MCP 配置 `args` 从 `mcp-feedback-enhanced@latest` 改成固定版本（例如 `mcp-feedback-enhanced@2.8.0`），并保留 `MCP_DESKTOP_MODE=true`。2.8.0 起若桌面壳无法启动（被杀毒隔离、glibc 太旧、Gatekeeper 拦下、启动后随即退出），该次会自动改开浏览器并在 stderr 打印网址，不再空等到超时；重启 MCP 服务器后会再尝试桌面。不要固定到 2.6.0 或更早（含未认证命令执行漏洞，见 [SECURITY.md](SECURITY.md)）。
+> - **改用 Web 模式**：移除 `MCP_DESKTOP_MODE` 即可，功能完全相同，提交后标签页会保留、下次调用自动更新内容。想要独立窗口，可在 Chrome／Edge 打开反馈页后选「安装为应用」——但这只是浏览器功能，不是桌面版的等价替代：后端仍由 MCP 调用启动、每次调用仍会打开系统浏览器标签页、端口改变时要重新安装、通知权限需重新授权；窗口置顶请用操作系统工具。
 
 **配置文件示例**：
 - 桌面模式：[examples/mcp-config-desktop.json](examples/mcp-config-desktop.json)

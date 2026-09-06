@@ -12,6 +12,12 @@ for every client", which did not hold.
   upstream breaking changes)
 - ✅ Regression tests guarding the above
 
+**Component scope — desktop application (Tauri shell), since v2.8.0:**
+- 🟡 Maintenance-only: security fixes and "cannot launch at all" compatibility fixes only;
+  no new features (always-on-top, staying resident, keeping the window after submit).
+  Scheduled for removal in v3; the release notes will name the last version that ships
+  the desktop binaries. Details and migration options are in the README.
+
 **Decided from community feedback** (see the pinned discussion):
 - Which pre-existing defects to fix (timeouts, session history, per-client compatibility)
 - Whether to move toward native MCP Elicitation / Apps to shrink the implementation
@@ -25,7 +31,8 @@ for every client", which did not hold.
 
 | Version | Supported |
 |---------|-----------|
-| 2.6.1 and later | ✅ Supported |
+| Latest 2.x release | ✅ Receives all fixes (security, compatibility, and the fixes in the "in scope" list) |
+| Older 2.6.1+ releases | ⚠️ Free of the command-execution issue below, but fixes are **not** back-ported — pinning an old version (e.g. to keep desktop mode) means staying on its known issues |
 | 2.6.0 and earlier | ❌ **Not supported — contains a known command execution issue (see below)** |
 
 If you are on 2.6.0 or earlier, upgrade:

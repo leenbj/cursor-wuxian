@@ -2,6 +2,28 @@
 
 本文件記錄了 **MCP Feedback Enhanced** 的所有版本更新內容。
 
+## [v2.8.0] - 2026-09-07 - 桌面應用程式進入僅維護狀態
+
+### 🌟 版本亮點
+- 桌面應用程式（Tauri 殼）自本版起 **maintenance-only**：不再新增功能，只修安全問題與完全無法啟動的相容性問題，預計 v3 移除；binary 仍隨本版出貨，想繼續使用請在 IDE 的 MCP 設定釘住版本（見 README「桌面應用程式維護狀態」）。
+- 桌面殼起不來時（被防毒隔離、glibc 太舊、Gatekeeper 擋下、啟動後隨即退出）不再空等到逾時：本 process 自動改走瀏覽器，並把網址印到 stderr。
+
+### 🐛 問題修復
+- **桌面模式的瀏覽器回退從未生效**：`launch_desktop_app` 失敗時呼叫的 `open_browser` 會因為同一個 `MCP_DESKTOP_MODE` 環境變數而直接略過，使用者面前什麼都沒有，只能等到 timeout 收到「使用者未回應」。現在改在唯一的分流點處理：桌面啟動失敗 → 清掉本 process 的 `MCP_DESKTOP_MODE` → 走既有 `smart_open_browser`（含活躍分頁偵測與會話更新通知），之後每次呼叫都直接走 Web，不會再試桌面、再開新分頁；重啟 MCP 伺服器會重新讀 IDE 設定再試桌面。
+- **native 啟動後隨即退出現在算啟動失敗**：兩份 Python launcher 原本只 `Popen` 再等兩秒，不看退出碼，被 Defender 隔離或缺 glibc 時仍回報「啟動成功」。現在觀察期內退出即失敗（附 exit code 與 stderr 尾段），交給上述回退。
+- **瀏覽器也開不了時不再靜默**：`webbrowser.open` 回傳 False（例如無桌面環境的 SSH 主機）或 WSL 三種開啟方式全失敗時，無條件把網址印到 stderr，讓使用者能手動開啟；不再只在 `MCP_DEBUG=true` 時看得到。
+
+### 🔧 其他變更
+- `build-desktop.yml` 的觸發路徑排除 `src-tauri/python/**`：純 Python launcher 變更不再觸發四平台 native 重建與 binary 提交。
+- 兩份 launcher（`src/mcp_feedback_enhanced/desktop_app/` 與 `src-tauri/python/`）同步為同一份；`build_desktop.py` 複製時不會再把發佈版退回舊寫法。
+- README 三語新增「桌面應用程式維護狀態」與遷移說明；SECURITY.md 新增桌面元件維護範圍，支援版本表區分「最新 2.x」與「釘住的舊版不回補修正」。
+- 本版**不**改 Rust、不改 native binary、不改 `/ws` 的桌面 WebView Origin 白名單、不改 renovate 設定。
+
+### ✅ 測試
+- `test_desktop_fallback.py` —— 桌面模組缺失時真的把網址交給瀏覽器並離開桌面模式、第二次呼叫重用既有分頁而非重試桌面、桌面健康時完全不碰瀏覽器、native 隨即退出視為失敗、瀏覽器開不了時網址印到 stderr。測試只攔最底層的 `webbrowser.open`，保留真實的桌面模式判斷，修正前四項確認失敗。
+
+---
+
 ## [v2.7.2] - 2026-09-07 - 無人回應時明確收尾
 
 ### 🌟 版本亮點
