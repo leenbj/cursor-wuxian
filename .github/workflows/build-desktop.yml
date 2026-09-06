@@ -45,20 +45,24 @@ jobs:
             target: x86_64-pc-windows-msvc
             binary: mcp-feedback-enhanced-desktop.exe
             name: windows
+            release_name: mcp-feedback-enhanced-desktop.exe
           - os: macos-latest
             target: x86_64-apple-darwin
             binary: mcp-feedback-enhanced-desktop
             name: macos-intel
+            release_name: mcp-feedback-enhanced-desktop-macos-intel
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: mcp-feedback-enhanced-desktop
             name: macos-arm64
+            release_name: mcp-feedback-enhanced-desktop-macos-arm64
           # 固定 22.04（glibc 2.35）：ubuntu-latest 建出的 binary 需要 glibc 2.39，
           # 只能在 Ubuntu 24.04+ 執行（見 #165）
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary: mcp-feedback-enhanced-desktop
             name: linux
+            release_name: mcp-feedback-enhanced-desktop-linux
 
     runs-on: ${{ matrix.os }}
 
@@ -173,12 +177,21 @@ jobs:
         fi
       shell: bash
 
+    # 以最終檔名上傳：download-artifact 只有單一 artifact 時不會建立子目錄，
+    # 提交步驟改用檔名（而非目錄）辨識平台，單平台建置才不會漏掉。
+    - name: Stage binary under release name
+      if: ${{ steps.check_platform.outputs.should_build == 'true' && github.event.inputs.upload_artifacts != 'false' }}
+      run: |
+        mkdir -p desktop-stage
+        cp "src-tauri/target/${{ matrix.target }}/release/${{ matrix.binary }}" "desktop-stage/${{ matrix.release_name }}"
+      shell: bash
+
     - name: Upload desktop binary
       if: ${{ steps.check_platform.outputs.should_build == 'true' && github.event.inputs.upload_artifacts != 'false' }}
       uses: actions/upload-artifact@v7
       with:
         name: desktop-${{ matrix.name }}
-        path: src-tauri/target/${{ matrix.target }}/release/${{ matrix.binary }}
+        path: desktop-stage/${{ matrix.release_name }}
         retention-days: 30  # 保留 30 天
         compression-level: 6
         if-no-files-found: error  # 如果沒有找到文件則失敗
@@ -314,14 +327,12 @@ jobs:
         for platform_dir in desktop-windows desktop-macos-intel desktop-macos-arm64 desktop-linux; do
           echo "🔍 處理平台: $platform_dir"
 
-          # 查找該平台的二進制文件
-          BINARY_FILE=""
-          if [ -d "desktop-artifacts/$platform_dir" ]; then
-            BINARY_FILE=$(find "desktop-artifacts/$platform_dir" -name "mcp-feedback-enhanced-desktop*" -type f | head -1)
-          fi
+          # 依最終檔名遞迴搜尋：download-artifact 只有單一 artifact 時不會建立
+          # <artifact-name>/ 子目錄，不能靠目錄辨識平台
+          TARGET_NAME="${PLATFORM_MAP[$platform_dir]}"
+          BINARY_FILE=$(find desktop-artifacts -name "$TARGET_NAME" -type f | head -1)
 
           if [ -n "$BINARY_FILE" ] && [ -f "$BINARY_FILE" ]; then
-            TARGET_NAME="${PLATFORM_MAP[$platform_dir]}"
             cp "$BINARY_FILE" "src/mcp_feedback_enhanced/desktop_release/$TARGET_NAME"
 
             # 設置執行權限（非 Windows）
