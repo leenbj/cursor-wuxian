@@ -334,6 +334,7 @@ def setup_routes(manager: "WebUIManager"):
             debug_log("會話已有 WebSocket 連接，替換為新連接")
 
         session.websocket = websocket
+        session.on_client_connected()
         debug_log(f"WebSocket 連接建立: 當前活躍會話 {session.session_id}")
 
         # 發送連接成功消息
@@ -392,10 +393,12 @@ def setup_routes(manager: "WebUIManager"):
         except Exception as e:
             debug_log(f"WebSocket 錯誤: {e}")
         finally:
-            # 安全清理 WebSocket 連接
+            # 安全清理 WebSocket 連接；若這是會話目前登記的連線，
+            # 啟動斷線寬限，逾期未重連即視為使用者關閉介面（#162）
             current_session = manager.get_current_session()
             if current_session and current_session.websocket == websocket:
                 current_session.websocket = None
+                current_session.on_client_disconnected()
                 debug_log("已清理會話中的 WebSocket 連接")
 
     @manager.app.post("/api/save-settings")
@@ -715,8 +718,9 @@ async def handle_websocket_message(manager: "WebUIManager", session, data: dict)
                 debug_log(f"發送心跳回應失敗: {e}")
 
     elif message_type == "user_timeout":
-        # 用戶設置的超時已到
+        # 用戶設置的超時已到。先寫明原因：wait_for_feedback 會把它原樣回給 AI
         debug_log(f"收到用戶超時通知: {session.session_id}")
+        session.status_message = "用戶設定的會話超時"
         # 清理會話資源
         await session._cleanup_resources_on_timeout()
         # 重構：不再自動停止服務器，保持服務器運行以支援持久性

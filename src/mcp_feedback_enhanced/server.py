@@ -469,6 +469,22 @@ def resolve_feedback_timeout(requested: object) -> int:
     return value
 
 
+def no_response_text(reason: str) -> str:
+    """使用者沒有回應時回給 AI 的文字（#125）
+
+    舊版走 ErrorHandler，回傳「操作超時／增加超時時間設置」這類一般錯誤，
+    客戶端會當成可重試的失敗再次呼叫本工具；使用者不在時就成了無限循環。
+    這裡改為明確的結束指令，讓對話能收尾。
+    """
+    return (
+        f"使用者未回應（{reason}）。\n"
+        "請視為使用者已離開：直接結束本次任務並輸出最終總結，"
+        "不要再次呼叫 interactive_feedback 等待回饋。\n"
+        f"(No user response: {reason}. Treat the user as away — "
+        "finish the task now and do NOT call interactive_feedback again.)"
+    )
+
+
 # ===== MCP 工具定義 =====
 @mcp.tool()
 async def interactive_feedback(
@@ -491,9 +507,9 @@ async def interactive_feedback(
 
     USAGE RULES:
     1. During any process, task, or conversation, whether asking, replying, or completing phased tasks, you must call this tool to ask for feedback.
-    2. Unless receiving termination instructions, all steps must repeatedly call this tool.
+    2. Unless receiving termination instructions, or this tool returns a "no user response" result, all steps must repeatedly call this tool.
     3. Whenever user feedback is received, if the feedback content is not empty, you must call this tool again and adjust behavior based on the feedback content.
-    4. Only when the user explicitly indicates "end" or "no more interaction needed" can you stop calling this tool, and the process is considered complete.
+    4. You can stop calling this tool, and the process is considered complete, when the user explicitly indicates "end" or "no more interaction needed", or when this tool returns a "no user response" result (the wait timed out or the user closed the feedback UI) — in that case finish the task and do NOT call this tool again.
     5. You should summarize what have done, and provide project directory through args to let user know what you have done to provide feedback for next step.
 
     Args:
@@ -522,9 +538,16 @@ async def interactive_feedback(
         debug_log("回饋模式: web")
 
         effective_timeout = resolve_feedback_timeout(timeout)
-        result = await launch_web_feedback_ui(
-            project_directory, summary, effective_timeout
-        )
+        try:
+            result = await launch_web_feedback_ui(
+                project_directory, summary, effective_timeout
+            )
+        except TimeoutError as e:
+            # 等待逾時或使用者關閉了介面：不是錯誤，是「沒有回饋」的正常結果。
+            # 只包住等待本身——之後的存檔／圖片處理若拋 TimeoutError（OSError
+            # ETIMEDOUT 亦屬此類），是真的錯誤，不能把已取得的回饋說成沒回應。
+            debug_log(f"未取得使用者回饋: {e}")
+            return [TextContent(type="text", text=no_response_text(str(e)))]
 
         # 處理取消情況
         if not result:

@@ -59,6 +59,14 @@ SUPPORTED_IMAGE_TYPES = {
 }
 TEMP_DIR = Path.home() / ".cache" / "interactive-feedback-mcp-web"
 
+# 最後一條登記的前端連線斷開後，等多久才把會話視為「使用者已關閉介面」（#162）。
+# 後端只登記最新的一條 WebSocket：舊分頁的連線要等它下一次應用層心跳
+# （websocket-manager.js，60 秒）才會被判定失效並重連，寬限必須大於「一次心跳
+# 週期 + 首次重連」，否則「開兩個分頁、關掉後開的那個」會把還在的使用者判成離開。
+# 75 秒只保證正常網路下的這條路徑；首次重連就失敗而走完整個退避序列
+# （1+2+4+8+16 秒 + jitter，再 31-36 秒）會超過寬限，那種情況視同斷線收尾。
+CLIENT_DISCONNECT_GRACE_SECONDS = 75
+
 # 訊息代碼現在從統一的常量文件導入
 # 使用 get_message_code 函數來獲取訊息代碼
 
@@ -117,6 +125,13 @@ class WebFeedbackSession:
         self.user_timeout_enabled = False
         self.user_timeout_seconds = 3600  # 預設 1 小時
         self.user_timeout_timer: threading.Timer | None = None
+
+        # 前端斷線後的寬限計時器；期間若重新連上就取消（#162）
+        self.disconnect_timer: threading.Timer | None = None
+        # 序列化「回饋提交」與「放棄等待」兩種結果的決定：submit_feedback 的寫入、
+        # 計時器回呼的放棄、wait_for_feedback 的讀取都在此 lock 內，避免回呼
+        # 在提交寫到一半時插入，讓等待端拿到文字有了、圖片還沒的半套回饋。
+        self._outcome_lock = threading.Lock()
 
         # 確保臨時目錄存在
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
@@ -391,16 +406,67 @@ class WebFeedbackSession:
         if enabled and self.status == SessionStatus.WAITING:
 
             def timeout_handler():
-                debug_log(f"用戶設定的超時已到: {self.session_id}")
-                # 設置超時標誌
-                self.status = SessionStatus.TIMEOUT
-                self.status_message = "用戶設定的會話超時"
-                # 設置完成事件，讓 wait_for_feedback 結束等待
-                self.feedback_completed.set()
+                with self._outcome_lock:
+                    if self.feedback_completed.is_set():
+                        return
+                    debug_log(f"用戶設定的超時已到: {self.session_id}")
+                    self.status = SessionStatus.TIMEOUT
+                    self.status_message = "用戶設定的會話超時"
+                    # 設置完成事件，讓 wait_for_feedback 結束等待
+                    self.feedback_completed.set()
 
             self.user_timeout_timer = threading.Timer(timeout_seconds, timeout_handler)
             self.user_timeout_timer.start()
             debug_log(f"已啟動用戶超時計時器: {timeout_seconds}秒")
+
+    def _cancel_disconnect_timer(self) -> None:
+        with self._outcome_lock:
+            if self.disconnect_timer:
+                self.disconnect_timer.cancel()
+                self.disconnect_timer = None
+
+    def on_client_connected(self) -> None:
+        """前端建立連線：取消斷線寬限計時器"""
+        if self.disconnect_timer:
+            self._cancel_disconnect_timer()
+            debug_log(f"會話 {self.session_id} 前端已重新連線，取消斷線寬限")
+
+    def on_client_disconnected(self) -> None:
+        """前端斷線：啟動寬限計時器，到期仍無連線則視為使用者關閉了介面
+
+        舊版在使用者關掉分頁／視窗後，會一直等到 timeout（預設 600 秒）
+        才回應 AI，期間整個對話卡住（#162）。
+        """
+        if self.feedback_completed.is_set():
+            return
+
+        def give_up():
+            # Timer.cancel() 攔不住已開始執行的回呼：在 lock 內以身分比對確認
+            # 這個計時器仍是現役的；被重連或清理取消過的就直接作廢。
+            with self._outcome_lock:
+                if (
+                    self.disconnect_timer is not timer
+                    or self.feedback_completed.is_set()
+                ):
+                    return
+                self.disconnect_timer = None
+                debug_log(
+                    f"會話 {self.session_id} 前端斷線超過 {CLIENT_DISCONNECT_GRACE_SECONDS} 秒，視為使用者關閉介面"
+                )
+                self.status = SessionStatus.TIMEOUT
+                self.status_message = "使用者已關閉回饋介面"
+                self.feedback_completed.set()
+
+        timer = threading.Timer(CLIENT_DISCONNECT_GRACE_SECONDS, give_up)
+        timer.daemon = True
+        with self._outcome_lock:
+            if self.disconnect_timer:
+                self.disconnect_timer.cancel()
+            self.disconnect_timer = timer
+            timer.start()
+        debug_log(
+            f"會話 {self.session_id} 前端斷線，{CLIENT_DISCONNECT_GRACE_SECONDS} 秒內未重連將結束等待"
+        )
 
     async def wait_for_feedback(self, timeout: int = 600) -> dict[str, Any]:
         """
@@ -431,11 +497,20 @@ class WebFeedbackSession:
             completed = await loop.run_in_executor(None, wait_in_thread)
 
             if completed:
-                # 檢查是否是用戶設定的超時
-                if self.status == SessionStatus.TIMEOUT and self.user_timeout_enabled:
-                    debug_log(f"會話 {self.session_id} 因用戶設定超時而結束")
+                # 未收到回饋就被叫醒：使用者設定的超時、或使用者關閉了介面。
+                # 在 lock 內讀：提交是原子寫入，讀到 feedback_result 就是完整回饋；
+                # 回呼即使在提交後才把狀態寫成 TIMEOUT，也以回饋為準。
+                with self._outcome_lock:
+                    gave_up = (
+                        self.status == SessionStatus.TIMEOUT
+                        and self.feedback_result is None
+                    )
+                if gave_up:
+                    debug_log(
+                        f"會話 {self.session_id} 未取得回饋即結束: {self.status_message}"
+                    )
                     await self._cleanup_resources_on_timeout()
-                    raise TimeoutError("會話已因用戶設定的超時而關閉")
+                    raise TimeoutError(self.status_message)
 
                 debug_log(f"會話 {self.session_id} 收到用戶回饋")
                 return {
@@ -472,15 +547,18 @@ class WebFeedbackSession:
             images: 圖片列表
             settings: 圖片設定（可選）
         """
-        self.feedback_result = feedback
-        # 先設置設定，再處理圖片（因為處理圖片時需要用到設定）
-        self.settings = settings or {}
-        self.images = self._process_images(images)
+        # 整段寫入在 outcome lock 內原子完成：等待端要嘛看到完整回饋，
+        # 要嘛什麼都沒看到，不會拿到文字有了、圖片還沒處理完的半套。
+        with self._outcome_lock:
+            # 先設置設定，再處理圖片（因為處理圖片時需要用到設定）
+            self.settings = settings or {}
+            self.images = self._process_images(images)
+            self.feedback_result = feedback
 
-        # 進入下一步：等待中 → 已提交反饋
-        self.next_step("已送出反饋，等待下次 MCP 調用")
+            # 進入下一步：等待中 → 已提交反饋
+            self.next_step("已送出反饋，等待下次 MCP 調用")
 
-        self.feedback_completed.set()
+            self.feedback_completed.set()
 
         # 發送反饋已收到的消息給前端
         if self.websocket:
@@ -636,6 +714,11 @@ class WebFeedbackSession:
                 self.user_timeout_timer = None
                 resources_cleaned += 1
 
+            # 1.6. 取消斷線寬限計時器
+            if self.disconnect_timer:
+                self._cancel_disconnect_timer()
+                resources_cleaned += 1
+
             # 2. 關閉 WebSocket 連接
             if self.websocket:
                 try:
@@ -785,6 +868,10 @@ class WebFeedbackSession:
             if self.cleanup_timer:
                 self.cleanup_timer.cancel()
                 self.cleanup_timer = None
+                resources_cleaned += 1
+
+            if self.disconnect_timer:
+                self._cancel_disconnect_timer()
                 resources_cleaned += 1
 
             # 2. 清理臨時數據
