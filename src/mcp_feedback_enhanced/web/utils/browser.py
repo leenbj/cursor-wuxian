@@ -122,31 +122,37 @@ def open_browser_in_wsl(url: str) -> None:
     raise Exception("無法在 WSL 環境中啟動 Windows 瀏覽器")
 
 
-def smart_browser_open(url: str) -> None:
+def smart_browser_open(url: str) -> bool:
     """
     智能瀏覽器開啟函數，根據環境選擇最佳方式
 
     Args:
         url: 要開啟的 URL
+
+    Returns:
+        bool: 是否成功交給瀏覽器開啟。桌面模式下不開瀏覽器（桌面殼本身是介面），
+        視為成功；WSL 三種方式全失敗會拋出例外。
     """
     # 檢查是否為桌面模式
     if is_desktop_mode():
         debug_log("檢測到桌面模式，跳過瀏覽器開啟")
-        return
+        return True
 
     if is_wsl_environment():
         debug_log("檢測到 WSL 環境，使用 WSL 專用瀏覽器啟動方式")
         open_browser_in_wsl(url)
-    else:
-        debug_log("使用標準瀏覽器啟動方式")
-        webbrowser.open(url)
+        return True
+
+    debug_log("使用標準瀏覽器啟動方式")
+    # webbrowser.open 回傳 False 表示找不到可用的瀏覽器（例如無桌面環境的 SSH 主機）
+    return webbrowser.open(url)
 
 
-def get_browser_opener() -> Callable[[str], None]:
+def get_browser_opener() -> Callable[[str], bool]:
     """
     獲取瀏覽器開啟函數
 
     Returns:
-        Callable: 瀏覽器開啟函數
+        Callable: 瀏覽器開啟函數，回傳是否成功開啟
     """
     return smart_browser_open

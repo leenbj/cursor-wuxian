@@ -19,7 +19,8 @@ try:
     from mcp_feedback_enhanced.debug import server_debug_log as debug_log
     from mcp_feedback_enhanced.web.main import WebUIManager, get_web_ui_manager
 except ImportError as e:
-    print(f"無法導入 MCP Feedback Enhanced 模組: {e}")
+    # 在這裡無法使用 debug_log，因為導入失敗
+    sys.stderr.write(f"無法導入 MCP Feedback Enhanced 模組: {e}\n")
     sys.exit(1)
 
 
@@ -67,8 +68,8 @@ class DesktopApp:
             self.web_manager.start_server()
 
         # 等待服務器啟動
-        max_wait = 10  # 最多等待 10 秒
-        wait_count = 0
+        max_wait = 10.0  # 最多等待 10 秒
+        wait_count = 0.0
         while wait_count < max_wait:
             if (
                 self.web_manager.server_thread
@@ -220,7 +221,8 @@ class DesktopApp:
             # Windows 下隱藏控制台視窗
             creation_flags = 0
             if os.name == "nt":
-                creation_flags = subprocess.CREATE_NO_WINDOW
+                # CREATE_NO_WINDOW 只在 Windows 上存在
+                creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
 
             self.app_handle = subprocess.Popen(
                 [str(tauri_exe)],
@@ -231,8 +233,22 @@ class DesktopApp:
             )
             debug_log("Tauri 桌面應用程式已啟動")
 
-            # 等待一下確保應用程式啟動
+            # 等待一下確保應用程式啟動。觀察期內就退出（Defender 隔離、glibc 太舊、
+            # Gatekeeper 擋下、缺 WebView runtime）一律視為啟動失敗，讓呼叫端退回
+            # 瀏覽器；否則使用者面前什麼都沒有，只能等到 timeout。
             await asyncio.sleep(2)
+            exit_code = self.app_handle.poll()
+            if exit_code is not None:
+                stderr_tail = ""
+                if self.app_handle.stderr:
+                    stderr_tail = self.app_handle.stderr.read().decode(
+                        "utf-8", "replace"
+                    )[-500:]
+                self.app_handle = None
+                raise RuntimeError(
+                    f"桌面應用程式啟動後隨即退出（exit code {exit_code}）"
+                    + (f"：{stderr_tail.strip()}" if stderr_tail.strip() else "")
+                )
 
         except Exception as e:
             debug_log(f"啟動 Tauri 應用程式失敗: {e}")
@@ -326,7 +342,7 @@ def run_desktop_app():
             loop.close()
 
     except Exception as e:
-        print(f"桌面應用程式運行失敗: {e}")
+        sys.stderr.write(f"桌面應用程式運行失敗: {e}\n")
         sys.exit(1)
 
 

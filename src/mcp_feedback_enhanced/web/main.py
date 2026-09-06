@@ -9,6 +9,7 @@ Web UI 主要管理類
 import asyncio
 import concurrent.futures
 import os
+import sys
 import threading
 import time
 import uuid
@@ -610,14 +611,20 @@ class WebUIManager:
         # 等待伺服器啟動
         time.sleep(2)
 
-    def open_browser(self, url: str):
-        """開啟瀏覽器"""
+    def open_browser(self, url: str) -> bool:
+        """開啟瀏覽器；失敗時無條件印到 stderr 附上網址，讓使用者能手動開啟"""
         try:
-            browser_opener = get_browser_opener()
-            browser_opener(url)
-            debug_log(f"已開啟瀏覽器：{url}")
+            opened = get_browser_opener()(url)
         except Exception as e:
             debug_log(f"無法開啟瀏覽器: {e}")
+            opened = False
+        if opened:
+            debug_log(f"已開啟瀏覽器：{url}")
+        else:
+            sys.stderr.write(
+                f"[mcp-feedback-enhanced] 無法自動開啟瀏覽器，請手動開啟：{url}\n"
+            )
+        return opened
 
     async def smart_open_browser(self, url: str) -> bool:
         """智能開啟瀏覽器 - 檢測是否已有活躍標籤頁
@@ -664,7 +671,8 @@ class WebUIManager:
             url: Web 服務 URL
 
         Returns:
-            bool: True 表示成功啟動桌面應用程式
+            bool: True 表示桌面應用程式已啟動；False 表示啟動失敗，
+            由呼叫端決定退回 Web 模式（本方法不再自行開瀏覽器）
         """
         try:
             # 嘗試導入桌面應用程式模組
@@ -681,8 +689,6 @@ class WebUIManager:
                     debug_log("發佈包中未找到桌面應用程式模組，嘗試開發環境...")
 
                 # 回退到開發環境路徑
-                import sys
-
                 project_root = os.path.dirname(
                     os.path.dirname(os.path.dirname(__file__))
                 )
@@ -710,15 +716,8 @@ class WebUIManager:
             debug_log("桌面應用程式啟動成功")
             return True
 
-        except ImportError as e:
-            debug_log(f"無法導入桌面應用程式模組: {e}")
-            debug_log("回退到瀏覽器模式...")
-            self.open_browser(url)
-            return False
         except Exception as e:
             debug_log(f"桌面應用程式啟動失敗: {e}")
-            debug_log("回退到瀏覽器模式...")
-            self.open_browser(url)
             return False
 
     def close_desktop_app(self):
@@ -1129,10 +1128,20 @@ async def launch_web_feedback_ui(
     # 使用根路徑 URL
     feedback_url = manager.get_server_url()  # 直接使用根路徑
 
+    if desktop_mode and not await manager.launch_desktop_app(feedback_url):
+        # 桌面殼起不來（binary 缺失、被防毒隔離、glibc／Gatekeeper 擋下、隨即退出）：
+        # 本 process 改走 Web 模式。清掉環境變數是唯一的狀態來源——之後每次呼叫
+        # 都走 smart_open_browser（含活躍分頁偵測與會話更新通知），不會每次再試桌面、
+        # 再開一個新分頁。重啟 MCP server 會重新讀 IDE 設定再試桌面。
+        sys.stderr.write(
+            "[mcp-feedback-enhanced] 桌面應用程式無法啟動，本次改用瀏覽器介面："
+            f"{feedback_url}\n"
+        )
+        os.environ.pop("MCP_DESKTOP_MODE", None)
+        desktop_mode = False
+
     if desktop_mode:
-        # 桌面模式：啟動桌面應用程式
-        debug_log("檢測到桌面模式，啟動桌面應用程式...")
-        has_active_tabs = await manager.launch_desktop_app(feedback_url)
+        has_active_tabs = True  # 桌面殼本身就是介面
     else:
         # Web 模式：智能開啟瀏覽器
         has_active_tabs = await manager.smart_open_browser(feedback_url)

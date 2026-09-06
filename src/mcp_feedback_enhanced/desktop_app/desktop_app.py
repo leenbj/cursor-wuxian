@@ -233,8 +233,22 @@ class DesktopApp:
             )
             debug_log("Tauri 桌面應用程式已啟動")
 
-            # 等待一下確保應用程式啟動
+            # 等待一下確保應用程式啟動。觀察期內就退出（Defender 隔離、glibc 太舊、
+            # Gatekeeper 擋下、缺 WebView runtime）一律視為啟動失敗，讓呼叫端退回
+            # 瀏覽器；否則使用者面前什麼都沒有，只能等到 timeout。
             await asyncio.sleep(2)
+            exit_code = self.app_handle.poll()
+            if exit_code is not None:
+                stderr_tail = ""
+                if self.app_handle.stderr:
+                    stderr_tail = self.app_handle.stderr.read().decode(
+                        "utf-8", "replace"
+                    )[-500:]
+                self.app_handle = None
+                raise RuntimeError(
+                    f"桌面應用程式啟動後隨即退出（exit code {exit_code}）"
+                    + (f"：{stderr_tail.strip()}" if stderr_tail.strip() else "")
+                )
 
         except Exception as e:
             debug_log(f"啟動 Tauri 應用程式失敗: {e}")

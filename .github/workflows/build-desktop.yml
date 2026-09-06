@@ -22,6 +22,8 @@ on:
   push:
     paths:
       - 'src-tauri/**'  # 桌面應用代碼變更時自動觸發
+      # 純 Python launcher 不需要重建 native binary（build_desktop.py 只是把它複製到發佈目錄）
+      - '!src-tauri/python/**'
       - 'scripts/build_desktop.py'
     branches:
       - main
@@ -29,6 +31,7 @@ on:
   pull_request:
     paths:
       - 'src-tauri/**'
+      - '!src-tauri/python/**'
       - 'scripts/build_desktop.py'
 
 env:
