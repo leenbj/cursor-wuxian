@@ -1,8 +1,8 @@
-# Release v2.7.1 - 2026-09-06 - MCP_LANGUAGE Precedence & Linux Desktop Compatibility
+# Release v2.7.2 - 2026-09-07 - Explicit Wrap-up When Nobody Answers
 
 ## 🌟 Key Highlights
-- `MCP_LANGUAGE` now truly forces the UI language — it is no longer overridden by a language previously saved from the UI (#189).
-- The Linux desktop binary now runs on Ubuntu 22.04 / Debian 12 and newer (glibc requirement lowered from 2.39 to 2.34, #165).
+- On timeout or when the user closes the UI, the tool now returns an explicit "no user response — finish the task" instruction, and the tool description's usage rules allow stopping in that case, so clients no longer treat it as a generic error and retry forever (#125).
+- Closing the feedback tab/window ends the wait after a 75-second grace period instead of blocking until the timeout (10 minutes by default) (#162).
 
 ## 🌐 Detailed Release Notes
 
@@ -24,7 +24,7 @@
 uvx mcp-feedback-enhanced@latest
 
 # This specific version / 此特定版本
-uvx mcp-feedback-enhanced@v2.7.1
+uvx mcp-feedback-enhanced@v2.7.2
 ```
 
 ## 🔗 Links
