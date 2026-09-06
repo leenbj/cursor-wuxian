@@ -1,1 +1,2 @@
-
+- Upgraded to fastmcp 4.x and MCP Python SDK 2.x; the server still serves legacy-protocol clients, and tool contracts and return shapes are unchanged.
+- Fixed a boundary condition in `ResourceManager` temp-file cleanup that caused a flaky test.

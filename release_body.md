@@ -1,7 +1,8 @@
-# Release v2.6.2 - 2026-08-25 - Timeout Clamping & Tool Contract
+# Release v2.7.0 - 2026-09-06 - Upgrade to fastmcp 4 / mcp 2
 
 ## 🌟 Key Highlights
-
+- Upgraded to fastmcp 4.x and MCP Python SDK 2.x; the server still serves legacy-protocol clients, and tool contracts and return shapes are unchanged.
+- Fixed a boundary condition in `ResourceManager` temp-file cleanup that caused a flaky test.
 
 ## 🌐 Detailed Release Notes
 
@@ -23,7 +24,7 @@
 uvx mcp-feedback-enhanced@latest
 
 # This specific version / 此特定版本
-uvx mcp-feedback-enhanced@v2.6.2
+uvx mcp-feedback-enhanced@v2.7.0
 ```
 
 ## 🔗 Links
