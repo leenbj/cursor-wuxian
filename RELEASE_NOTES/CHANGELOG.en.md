@@ -2,6 +2,26 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [v2.7.2] - 2026-09-07 - Explicit Wrap-up When Nobody Answers
+
+### 🌟 Highlights
+- On timeout or when the user closes the UI, the tool now returns an explicit "no user response — finish the task" instruction, and the tool description's usage rules allow stopping in that case, so clients no longer treat it as a generic error and retry forever (#125).
+- Closing the feedback tab/window ends the wait after a 75-second grace period instead of blocking until the timeout (10 minutes by default) (#162).
+
+### 🐛 Bug Fixes
+- **Timeout now returns a stop instruction** ([#125](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/125)): the old code handed `TimeoutError` to `ErrorHandler`, which told the model "Operation timeout / Increase timeout settings / Retry the operation later" — and a client that follows that advice calls the tool again, looping forever while the user is away. Timeouts (and the UI-closed case below) now return "No user response (reason). Treat the user as away: finish the task now and do NOT call interactive_feedback again", in Chinese and English; the tool description's USAGE RULES now list "no user response" as a valid stopping condition so the description and the reply no longer contradict each other. Only the wait itself takes this path — a `TimeoutError` raised after feedback was received (saving to disk, image processing; `OSError` ETIMEDOUT included) is still treated as an error and never turns real feedback into "no response".
+- **Closing the UI ends the wait** ([#162](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/162)): the frontend only cleaned up locally on close, so the backend never knew and `wait_for_feedback` sat there until the timeout. A 75-second grace timer now starts when the session's registered WebSocket disconnects and is cancelled by any reconnect (F5, a brief drop, another tab); only an unanswered grace period counts as "user closed the UI". Why 75 s: the backend registers only the newest connection, and an older tab is not detected as stale until its next application-level heartbeat (60 s), so the grace must exceed "one heartbeat period + the first reconnect" or the "open two tabs, close the newer one" case would declare the user gone. That is the only path it guarantees, on a healthy network; if the first reconnect fails and the full backoff sequence runs (1+2+4+8+16 s + jitter, another 31-36 s) the grace is exceeded and the session wraps up as disconnected. Feedback submission and giving up are linearized under one lock: `Timer.cancel()` cannot stop a callback that has already started, so the callback invalidates itself by identity check; submission is an atomic write, so whatever the waiter reads is complete feedback (never text without the images still being processed), and feedback that arrives always wins. Sessions that never had a frontend connection (e.g. no browser opened) keep the original timeout behaviour.
+- The frontend's session-timeout notification (`user_timeout`) now records its reason first, so the text returned to the AI is no longer the default "waiting for feedback".
+
+### ⚠️ Behaviour Change
+- Any WebSocket interruption longer than 75 s — laptop sleep, the browser discarding a background tab, an SSH tunnel dropping — now ends the wait with "user closed the feedback UI" instead of running to the timeout. This is deliberate: closing the window and leaving the AI hanging for ten minutes is far more common and more annoying than the occasional early wrap-up.
+
+### ✅ Tests
+- `test_feedback_timeout.py` — the timeout reply must carry the stop instruction and must not suggest retrying; a `TimeoutError` after feedback arrived must not be reported as no response; the tool description must allow stopping on no response; disconnect grace: ends the wait within the grace window (not at the timeout), a reconnect within the window does not, no timer starts once feedback exists, feedback arriving after the callback wrote TIMEOUT still wins, and a callback firing mid-submission never yields partial feedback; the `/ws` wiring (registered-socket disconnect starts the grace, reconnect cancels it) is covered through `TestClient.websocket_connect`.
+- Verified with a real MCP stdio round-trip plus Chromium: open UI → F5 → still waiting → close tab → stop instruction after the grace period; with no frontend at all, the timeout returns the same instruction.
+
+---
+
 ## [v2.7.1] - 2026-09-06 - MCP_LANGUAGE Precedence & Linux Desktop Compatibility
 
 ### 🌟 Highlights
