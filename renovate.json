@@ -23,6 +23,11 @@
   },
   "packageRules": [
     {
+      "description": ".python-version 是本機開發用的解譯器版本，由維護者手動調整（#236、#261）",
+      "matchManagers": ["pyenv"],
+      "enabled": false
+    },
+    {
       "description": "安全漏洞更新優先處理（prPriority 只能放在 packageRules）",
       "matchPackageNames": ["*"],
       "isVulnerabilityAlert": true,
