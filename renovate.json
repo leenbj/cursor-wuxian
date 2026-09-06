@@ -13,7 +13,6 @@
   "vulnerabilityAlerts": {
     "enabled": true,
     "schedule": ["at any time"],
-    "prPriority": 10,
     "labels": ["security"],
     "commitMessagePrefix": "🔒"
   },
@@ -22,6 +21,12 @@
     "enabled": false
   },
   "packageRules": [
+    {
+      "description": "安全漏洞更新優先處理（prPriority 只能放在 packageRules）",
+      "matchPackageNames": ["*"],
+      "isVulnerabilityAlert": true,
+      "prPriority": 10
+    },
     {
       "description": "把 patch 版本更新分組，降低 PR 數量",
       "matchUpdateTypes": ["patch"],
