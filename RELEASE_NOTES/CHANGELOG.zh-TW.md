@@ -2,6 +2,18 @@
 
 本文件記錄了 **MCP Feedback Enhanced** 的所有版本更新內容。
 
+## [Unreleased]
+
+### 🐛 問題修復
+- **`MCP_LANGUAGE` 改為最高優先**（[#189](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/189)）：README 把它描述為「強制指定介面語言」，但偵測順序卻讓介面中保存的語言排在它前面，設了 `MCP_LANGUAGE=zh-CN` 仍會顯示繁中。順序對調；設定環境變數後，介面中的語言選擇只在當次會話生效。
+- **Linux 桌面 binary 改在 ubuntu-22.04 建置**（[#165](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/165)）：原本在 ubuntu-latest 建出的檔案需要 `GLIBC_2.39`，只能在 Ubuntu 24.04+ 執行；重建後最高需求降為 `GLIBC_2.34`。
+- **修正桌面 binary 提交流程在單平台建置時失效**：`download-artifact` 只有單一 artifact 時不會建立子目錄，原本靠目錄名辨識平台的複製步驟會回報 0/4 並跳過提交。改為以最終檔名上傳與搜尋。
+
+### 🔧 其他變更
+- 修正 renovate 設定警告（`vulnerabilityAlerts.prPriority` 不合法，改以 `isVulnerabilityAlert` packageRule 表達）。
+
+---
+
 ## [v2.7.0] - 2026-09-06 - 升級至 fastmcp 4 / mcp 2
 
 ### 🌟 版本亮點

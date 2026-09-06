@@ -2,6 +2,18 @@
 
 This document records all version updates for **MCP Feedback Enhanced**.
 
+## [Unreleased]
+
+### 🐛 Bug Fixes
+- **`MCP_LANGUAGE` now has the highest priority** ([#189](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/189)): the README described it as "force UI language", yet the detection order put the language saved from the UI ahead of it, so `MCP_LANGUAGE=zh-CN` could still render Traditional Chinese. The order is swapped; with the variable set, the in-UI language picker only applies to the current session.
+- **Linux desktop binary is now built on ubuntu-22.04** ([#165](https://github.com/Minidoracat/mcp-feedback-enhanced/issues/165)): the ubuntu-latest build required `GLIBC_2.39` and only ran on Ubuntu 24.04+; the rebuilt binary tops out at `GLIBC_2.34`.
+- **Fixed the desktop-binary commit step for single-platform builds**: `download-artifact` does not create a per-artifact subdirectory when only one artifact exists, so the directory-based copy loop reported 0/4 and skipped the commit. Binaries are now uploaded and located by their final file name.
+
+### 🔧 Other Changes
+- Fixed the renovate config warning (`vulnerabilityAlerts.prPriority` is not allowed; expressed via an `isVulnerabilityAlert` packageRule instead).
+
+---
+
 ## [v2.7.0] - 2026-09-06 - Upgrade to fastmcp 4 / mcp 2
 
 ### 🌟 Highlights
