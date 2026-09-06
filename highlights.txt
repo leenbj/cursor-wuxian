@@ -1,2 +1,2 @@
-- Upgraded to fastmcp 4.x and MCP Python SDK 2.x; the server still serves legacy-protocol clients, and tool contracts and return shapes are unchanged.
-- Fixed a boundary condition in `ResourceManager` temp-file cleanup that caused a flaky test.
+- `MCP_LANGUAGE` now truly forces the UI language — it is no longer overridden by a language previously saved from the UI (#189).
+- The Linux desktop binary now runs on Ubuntu 22.04 / Debian 12 and newer (glibc requirement lowered from 2.39 to 2.34, #165).

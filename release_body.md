@@ -1,8 +1,8 @@
-# Release v2.7.0 - 2026-09-06 - Upgrade to fastmcp 4 / mcp 2
+# Release v2.7.1 - 2026-09-06 - MCP_LANGUAGE Precedence & Linux Desktop Compatibility
 
 ## 🌟 Key Highlights
-- Upgraded to fastmcp 4.x and MCP Python SDK 2.x; the server still serves legacy-protocol clients, and tool contracts and return shapes are unchanged.
-- Fixed a boundary condition in `ResourceManager` temp-file cleanup that caused a flaky test.
+- `MCP_LANGUAGE` now truly forces the UI language — it is no longer overridden by a language previously saved from the UI (#189).
+- The Linux desktop binary now runs on Ubuntu 22.04 / Debian 12 and newer (glibc requirement lowered from 2.39 to 2.34, #165).
 
 ## 🌐 Detailed Release Notes
 
@@ -24,7 +24,7 @@
 uvx mcp-feedback-enhanced@latest
 
 # This specific version / 此特定版本
-uvx mcp-feedback-enhanced@v2.7.0
+uvx mcp-feedback-enhanced@v2.7.1
 ```
 
 ## 🔗 Links
