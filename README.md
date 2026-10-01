@@ -417,6 +417,12 @@ If you find it useful, please:
 - **Discord:** [https://discord.gg/Gur2V67](https://discord.gg/Gur2V67)
 - **Issues:** [GitHub Issues](https://github.com/Minidoracat/mcp-feedback-enhanced/issues)
 
+## ☕ Support Development
+
+MCP Feedback Enhanced is free and open source. If it saves you time, you can support its development on Ko-fi:
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/minidoracat)
+
 ## 📄 License
 
 MIT License - See [LICENSE](LICENSE) file for details

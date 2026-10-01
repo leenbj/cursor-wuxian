@@ -415,6 +415,12 @@ A: 各種 AI 模型（包括 Gemini Pro 2.5、Claude 等）在圖片解析上可
 - **Discord：** [https://discord.gg/Gur2V67](https://discord.gg/Gur2V67)
 - **Issues：** [GitHub Issues](https://github.com/Minidoracat/mcp-feedback-enhanced/issues)
 
+## ☕ 支持開發
+
+MCP Feedback Enhanced 免費且開源。如果它幫你省下時間，歡迎到 Ko-fi 支持開發：
+
+[![在 Ko-fi 支持我](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/minidoracat)
+
 ## 📄 授權
 
 MIT 授權條款 - 詳見 [LICENSE](LICENSE) 檔案
