@@ -16,11 +16,12 @@
 > ### 一键安装与配置（Cursor）
 >
 > ```bash
-> # 1. 安装（从本仓库）
-> uv tool install --force git+https://github.com/leenbj/cursor-wuxian
->
-> # 2. ~/.cursor/mcp.json 合并以下条目（请使用全局配置）
+> curl -fsSL https://raw.githubusercontent.com/leenbj/cursor-wuxian/main/install.sh | bash
 > ```
+>
+> 脚本幂等，只合并、不覆盖你已有的配置（改动前自动留 `.bak-时间戳` 备份），依次完成：`uv tool install` 本仓库 → 合并 `~/.cursor/mcp.json` 的条目（含 `autoApprove`，避免对话内审批弹窗）→ 写入强制等待规则 `~/.cursor/rules/mcp-feedback-enhanced.mdc`（`alwaysApply`）→ 若已有 `ui_settings.json`，关闭「自动提交」「会话超时」。完成后请在 Cursor 的 MCP 设置面板确认已启用（必要时重载窗口）。
+>
+> **手动方式（与脚本等价）**：`uv tool install --force git+https://github.com/leenbj/cursor-wuxian`，再把下面条目合并进全局 `~/.cursor/mcp.json`：
 >
 > ```json
 > {
@@ -42,7 +43,7 @@
 > }
 > ```
 >
-> 3. 在 Cursor 用户规则中加入：未调用 `interactive_feedback` 并收到用户明确反馈（或「结束对话」结束信号）之前，禁止终止对话或输出最终总结；等待返回 `[FEEDBACK_WAITING]` 时必须带 `session_id` 立即续调。
+> 3. （仅手动方式需要，安装脚本已写入规则文件）在 Cursor 用户规则中加入：未调用 `interactive_feedback` 并收到用户明确反馈（或「结束对话」结束信号）之前，禁止终止对话或输出最终总结；等待返回 `[FEEDBACK_WAITING]` 时必须带 `session_id` 立即续调。
 > 4. 多个并行任务隔离：每个任务使用独立工作目录（目录名即任务名）与独立 `MCP_WEB_PORT`，避免多个后端抢同一端口。
 >
 > 桌面窗口系统标题依赖 Tauri 端读 `MCP_WINDOW_TITLE`（已改 `src-tauri`），需用仓库 CI（build-desktop.yml）重新构建桌面 binary 后生效；页面内标题与浏览器标签标题不依赖重编，立即生效。
