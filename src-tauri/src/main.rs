@@ -55,6 +55,17 @@ fn main() {
                 *state = Some(app.handle().clone());
             }
 
+            // 視窗標題自動適配：優先使用呼叫端傳入的任務名作為窗口標題
+            if let Some(window) = app.get_webview_window("main") {
+                if let Ok(window_title) = std::env::var("MCP_WINDOW_TITLE") {
+                    let window_title = window_title.trim();
+                    if !window_title.is_empty() {
+                        println!("設置窗口標題: {}", window_title);
+                        let _ = window.set_title(window_title);
+                    }
+                }
+            }
+
             // 檢查是否有 MCP_WEB_URL 環境變數
             if let Ok(web_url) = std::env::var("MCP_WEB_URL") {
                 println!("檢測到 Web URL: {}", web_url);

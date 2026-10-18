@@ -2,6 +2,51 @@
 
 **🌐 语言切换 / Language:** [English](README.md) | [繁體中文](README.zh-TW.md) | **简体中文**
 
+> ## 🍴 本仓库（cursor-wuxian） fork 说明
+>
+> 本仓库基于 Minidoracat/mcp-feedback-enhanced v2.8.1 改造（版本 2.9.0），目标只有一个：**必须等到用户在窗口内给出明确反馈，AI 才能继续或结束对话**，解决原版在宿主（如 Cursor）对单次 MCP 请求硬超时下「等几分钟就被掐断、对话自行结束」的问题。
+>
+> 与上游的差异：
+> - **分片等待协议**：`interactive_feedback` 每次调用最多等约 45 秒就返回，返回三态之一：`[FEEDBACK_WAITING]`（仍在等待，AI 必须带 `session_id` 立即续调，严禁终止对话）、用户反馈原文、`[CONVERSATION_ENDED]`（用户点了「结束对话」按钮，整个对话正式结束）。工具描述与无响应回退文案均已改为强制续等，旧版「视为用户已离开、直接结束」的指令已移除。
+> - **红色「结束对话」按钮**：位于导航栏最右侧、「提交反馈」上方，只有它能彻底结束对话；**关闭窗口 ≠ 结束**。
+> - **误关自动重拉 + 单一窗口**：窗口被误关后，后端监测到断线会自动重新拉起同一个窗口（拉起端单例互斥，永不双开），会话保持等待。
+> - **标题自动适配**：调用时传入 `title`（当前任务名），窗口系统标题、页面标题与页面内任务横幅自动显示，不需要用户干预。
+> - **不自动提前结束**：分片到期只返回等待状态，不动会话、不关窗口；自动提交默认关闭。
+>
+> ### 一键安装与配置（Cursor）
+>
+> ```bash
+> # 1. 安装（从本仓库）
+> uv tool install --force git+https://github.com/leenbj/cursor-wuxian
+>
+> # 2. ~/.cursor/mcp.json 合并以下条目（请使用全局配置）
+> ```
+>
+> ```json
+> {
+>   "mcpServers": {
+>     "mcp-feedback-enhanced": {
+>       "command": "uvx",
+>       "args": ["--from", "git+https://github.com/leenbj/cursor-wuxian", "mcp-feedback-enhanced"],
+>       "timeout": 86400,
+>       "env": {
+>         "MCP_DESKTOP_MODE": "true",
+>         "MCP_WEB_HOST": "127.0.0.1",
+>         "MCP_WEB_PORT": "8765",
+>         "MCP_LANGUAGE": "zh-CN",
+>         "MCP_DEBUG": "false"
+>       },
+>       "autoApprove": ["interactive_feedback"]
+>     }
+>   }
+> }
+> ```
+>
+> 3. 在 Cursor 用户规则中加入：未调用 `interactive_feedback` 并收到用户明确反馈（或「结束对话」结束信号）之前，禁止终止对话或输出最终总结；等待返回 `[FEEDBACK_WAITING]` 时必须带 `session_id` 立即续调。
+> 4. 多个并行任务隔离：每个任务使用独立工作目录（目录名即任务名）与独立 `MCP_WEB_PORT`，避免多个后端抢同一端口。
+>
+> 桌面窗口系统标题依赖 Tauri 端读 `MCP_WINDOW_TITLE`（已改 `src-tauri`），需用仓库 CI（build-desktop.yml）重新构建桌面 binary 后生效；页面内标题与浏览器标签标题不依赖重编，立即生效。
+
 **原作者：** [Fábio Ferreira](https://x.com/fabiomlferreira) | [原始项目](https://github.com/noopstudios/interactive-feedback-mcp) ⭐
 **分支版本：** [Minidoracat](https://github.com/Minidoracat)
 **UI 设计参考：** [sanshao85/mcp-feedback-collector](https://github.com/sanshao85/mcp-feedback-collector)

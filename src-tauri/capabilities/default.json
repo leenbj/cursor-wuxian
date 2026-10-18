@@ -1,0 +1,11 @@
+{
+    "$schema": "../gen/schemas/desktop-schema.json",
+    "identifier": "default",
+    "description": "主窗口基礎權限：允許前端同步任務標題到系統窗口標題列並關閉窗口",
+    "windows": ["main"],
+    "permissions": [
+        "core:window:default",
+        "core:window:allow-set-title",
+        "core:window:allow-close"
+    ]
+}

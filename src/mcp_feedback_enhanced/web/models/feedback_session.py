@@ -31,6 +31,7 @@ class SessionStatus(Enum):
     ACTIVE = "active"  # 活躍狀態
     FEEDBACK_SUBMITTED = "feedback_submitted"  # 已提交反饋
     COMPLETED = "completed"  # 已完成
+    ENDED = "ended"  # 用戶點擊「結束對話」主動結束（終態）
     ERROR = "error"  # 錯誤（終態）
     TIMEOUT = "timeout"  # 超時（終態）
     EXPIRED = "expired"  # 已過期（終態）
@@ -59,13 +60,11 @@ SUPPORTED_IMAGE_TYPES = {
 }
 TEMP_DIR = Path.home() / ".cache" / "interactive-feedback-mcp-web"
 
-# 最後一條登記的前端連線斷開後，等多久才把會話視為「使用者已關閉介面」（#162）。
-# 後端只登記最新的一條 WebSocket：舊分頁的連線要等它下一次應用層心跳
-# （websocket-manager.js，60 秒）才會被判定失效並重連，寬限必須大於「一次心跳
-# 週期 + 首次重連」，否則「開兩個分頁、關掉後開的那個」會把還在的使用者判成離開。
-# 75 秒只保證正常網路下的這條路徑；首次重連就失敗而走完整個退避序列
-# （1+2+4+8+16 秒 + jitter，再 31-36 秒）會超過寬限，那種情況視同斷線收尾。
-CLIENT_DISCONNECT_GRACE_SECONDS = 75
+# 前端連線斷開後，等多久判定視窗被誤關並自動重新拉起。
+# 寬限要蓋過一次正常刷新/重連（退避首輪 1+2+4+8 秒內多可回來），又不能讓
+# 使用者對著消失的視窗乾等；取 15 秒。誤判代價只是多拉起一次單一視窗
+# （拉起端有單例互斥，不會雙開），遠小於舊版「75 秒後直接結束等待」。
+CLIENT_DISCONNECT_GRACE_SECONDS = 15
 
 # 訊息代碼現在從統一的常量文件導入
 # 使用 get_message_code 函數來獲取訊息代碼
@@ -81,10 +80,17 @@ class WebFeedbackSession:
         summary: str,
         auto_cleanup_delay: int = 3600,
         max_idle_time: int = 1800,
+        title: str = "",
     ):
         self.session_id = session_id
         self.project_directory = project_directory
         self.summary = summary
+        # 視窗標題自動適配：優先用呼叫端傳入的任務名，否則取摘要首行
+        self.title = title.strip() or self._derive_title(summary)
+        # 用戶點擊「結束對話」按鈕的主動結束標記，與斷線/超時嚴格區分
+        self.ended_by_user = False
+        # 前端斷線且寬限到期時的回呼（由 WebUIManager 注入，負責重新拉起視窗）
+        self.on_window_lost: Callable[[], None] | None = None
         self.websocket: WebSocket | None = None
         self.feedback_result: str | None = None
         self.images: list[dict] = []
@@ -145,6 +151,54 @@ class WebFeedbackSession:
         debug_log(
             f"會話 {self.session_id} 初始化完成，自動清理延遲: {auto_cleanup_delay}秒，最大空閒: {max_idle_time}秒"
         )
+
+    @staticmethod
+    def _derive_title(summary: str) -> str:
+        """從摘要推導視窗標題：取第一條有內容的行，去掉 Markdown 標題符號"""
+        for line in (summary or "").splitlines():
+            text = line.strip().lstrip("#").strip()
+            if text:
+                return text[:80]
+        return "MCP Feedback"
+
+    def end_conversation(self) -> None:
+        """用戶點擊「結束對話」按鈕：正式結束整個對話。
+
+        這是唯一能讓等待端以「結束」語義返回的用戶操作，與關閉視窗
+        （斷線後自動重新拉起、繼續等待）、超時嚴格區分。
+        """
+        with self._outcome_lock:
+            if self.feedback_completed.is_set():
+                return
+            self.ended_by_user = True
+            self.status = SessionStatus.ENDED
+            self.status_message = "用戶已結束對話"
+            self.feedback_completed.set()
+        debug_log(f"會話 {self.session_id} 用戶點擊結束對話，對話正式結束")
+
+    async def wait_slice(self, slice_seconds: int) -> dict[str, Any]:
+        """短時間片等待：供呼叫端在單次工具調用內分片輪詢，避免宿主請求超時。
+
+        Returns:
+            dict: outcome 為 feedback / ended / waiting 三態之一。
+            waiting 僅表示本片到期，會話與視窗保持不動，不做任何清理。
+        """
+        loop = asyncio.get_event_loop()
+        completed = await loop.run_in_executor(
+            None, self.feedback_completed.wait, max(int(slice_seconds), 1)
+        )
+        if completed:
+            with self._outcome_lock:
+                if self.ended_by_user:
+                    return {"outcome": "ended", "interactive_feedback": "", "images": []}
+                if self.feedback_result is not None:
+                    return {
+                        "outcome": "feedback",
+                        "interactive_feedback": self.feedback_result or "",
+                        "images": self.images,
+                        "settings": self.settings,
+                    }
+        return {"outcome": "waiting", "interactive_feedback": "", "images": []}
 
     def get_message_code(self, key: str) -> str:
         """
@@ -237,6 +291,7 @@ class WebFeedbackSession:
         """檢查是否處於終態"""
         return self.status in [
             SessionStatus.COMPLETED,
+            SessionStatus.ENDED,
             SessionStatus.ERROR,
             SessionStatus.TIMEOUT,
             SessionStatus.EXPIRED,
@@ -254,6 +309,8 @@ class WebFeedbackSession:
             "project_directory": self.project_directory,
             "summary": self.summary,
             "session_id": self.session_id,
+            "title": self.title,
+            "ended_by_user": self.ended_by_user,
         }
 
     def is_active(self) -> bool:
@@ -432,10 +489,11 @@ class WebFeedbackSession:
             debug_log(f"會話 {self.session_id} 前端已重新連線，取消斷線寬限")
 
     def on_client_disconnected(self) -> None:
-        """前端斷線：啟動寬限計時器，到期仍無連線則視為使用者關閉了介面
+        """前端斷線：啟動寬限計時器，到期仍無連線視為視窗被誤關，自動重新拉起。
 
-        舊版在使用者關掉分頁／視窗後，會一直等到 timeout（預設 600 秒）
-        才回應 AI，期間整個對話卡住（#162）。
+        關閉視窗不等於結束對話：只有用戶點擊「結束對話」按鈕（end_conversation）
+        才結束等待。誤關後在此觸發 on_window_lost 回呼重新拉起單一視窗，
+        會話保持等待狀態，不提前結束。
         """
         if self.feedback_completed.is_set():
             return
@@ -451,11 +509,15 @@ class WebFeedbackSession:
                     return
                 self.disconnect_timer = None
                 debug_log(
-                    f"會話 {self.session_id} 前端斷線超過 {CLIENT_DISCONNECT_GRACE_SECONDS} 秒，視為使用者關閉介面"
+                    f"會話 {self.session_id} 前端斷線超過 {CLIENT_DISCONNECT_GRACE_SECONDS} 秒，"
+                    "視為視窗被誤關，自動重新拉起（關窗不等於結束對話）"
                 )
-                self.status = SessionStatus.TIMEOUT
-                self.status_message = "使用者已關閉回饋介面"
-                self.feedback_completed.set()
+            callback = self.on_window_lost
+            if callback is not None:
+                try:
+                    callback()
+                except Exception as e:
+                    debug_log(f"重新拉起視窗失敗: {e}")
 
         timer = threading.Timer(CLIENT_DISCONNECT_GRACE_SECONDS, give_up)
         timer.daemon = True

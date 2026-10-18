@@ -470,18 +470,19 @@ def resolve_feedback_timeout(requested: object) -> int:
 
 
 def no_response_text(reason: str) -> str:
-    """使用者沒有回應時回給 AI 的文字（#125）
+    """本片未取得回饋時回給 AI 的文字。
 
-    舊版走 ErrorHandler，回傳「操作超時／增加超時時間設置」這類一般錯誤，
-    客戶端會當成可重試的失敗再次呼叫本工具；使用者不在時就成了無限循環。
-    這裡改為明確的結束指令，讓對話能收尾。
+    舊版在這裡指示「視為使用者已離開、直接結束任務」，導致對話在用戶
+    稍作停頓時就被提前收尾。現改為強制等待協議：未收到用戶明確回饋或
+    「結束對話」信號前，不得終止對話，只能帶 session 續等。
     """
     return (
-        f"使用者未回應（{reason}）。\n"
-        "請視為使用者已離開：直接結束本次任務並輸出最終總結，"
-        "不要再次呼叫 interactive_feedback 等待回饋。\n"
-        f"(No user response: {reason}. Treat the user as away — "
-        "finish the task now and do NOT call interactive_feedback again.)"
+        f"本等待分片未取得使用者回饋（{reason}）。\n"
+        "這不是結束信號：嚴禁終止對話、嚴禁輸出最終總結。"
+        "請立即再次呼叫 interactive_feedback 續等（有 session_id 時帶上），"
+        "直到收到使用者回饋或 [CONVERSATION_ENDED] 為止。\n"
+        f"(Still waiting: {reason}. Do NOT finish or summarize — "
+        "call interactive_feedback again and keep waiting.)"
     )
 
 
@@ -496,30 +497,63 @@ async def interactive_feedback(
         int,
         Field(
             description=(
-                "等待用戶回饋的超時時間（秒）。"
-                f"有效範圍 {MIN_FEEDBACK_TIMEOUT}–{MAX_FEEDBACK_TIMEOUT}；"
-                "超出範圍會由伺服器端鉗制，因為使用者需要實際可用的回饋時間。"
+                "期望等待用戶回饋的總時間（秒），僅作期望值。"
+                "伺服器以短時間片分片等待，每次調用最多等一片就返回，"
+                "避免宿主對單次 MCP 請求的硬超時把等待掐斷。"
             )
         ),
     ] = DEFAULT_FEEDBACK_TIMEOUT,
+    title: Annotated[
+        str,
+        Field(
+            description=(
+                "視窗標題（當前任務名）。由呼叫端按當前對話自動傳入，"
+                "視窗標題將以此自動適配；留空時取摘要第一行。"
+            )
+        ),
+    ] = "",
+    session_id: Annotated[
+        str,
+        Field(
+            description=(
+                "續等時帶入上一次返回的 session_id，復用同一會話與同一視窗；"
+                "首次調用留空。"
+            )
+        ),
+    ] = "",
 ) -> list[TextContent | ImageContent]:
     """Interactive feedback collection tool for LLM agents.
 
-    USAGE RULES:
-    1. During any process, task, or conversation, whether asking, replying, or completing phased tasks, you must call this tool to ask for feedback.
-    2. Unless receiving termination instructions, or this tool returns a "no user response" result, all steps must repeatedly call this tool.
-    3. Whenever user feedback is received, if the feedback content is not empty, you must call this tool again and adjust behavior based on the feedback content.
-    4. You can stop calling this tool, and the process is considered complete, when the user explicitly indicates "end" or "no more interaction needed", or when this tool returns a "no user response" result (the wait timed out or the user closed the feedback UI) — in that case finish the task and do NOT call this tool again.
-    5. You should summarize what have done, and provide project directory through args to let user know what you have done to provide feedback for next step.
+    USAGE RULES (mandatory waiting protocol):
+    1. 【絕對禁止提前終止】在收到用戶明確回饋或「結束對話」信號之前，嚴禁
+       結束對話、輸出最終總結、或自行判定任務完成。等待超時、窗口被關、
+       連接中斷都不構成終止理由。
+    2. 本工具以短時間片分片等待：每次調用最多等約 45 秒。返回若以
+       「[FEEDBACK_WAITING]」開頭，表示用戶尚未回覆——必須立即再次調用
+       本工具，並帶上返回中的 session_id 續等（同一輪內靜默銜接，不要
+       輸出任何中間文本、不要改用其他方式徵求用戶意見），如此循環，
+       直到返回用戶回饋或「[CONVERSATION_ENDED]」為止。
+    3. 返回「[CONVERSATION_ENDED]」表示用戶點擊了窗口上的「結束對話」
+       按鈕，整個對話正式結束：此時才可以輸出最終總結，且不要再調用
+       本工具。關閉窗口不等於結束（窗口會自動重新拉起並繼續等待）。
+    4. 收到用戶回饋後，按回饋調整行為並繼續執行；階段完成需要再次確認
+       時，重新調用本工具（不帶 session_id 開新會話）。
+    5. 調用時必須傳入 title（當前任務名，依當前對話自動生成），並在
+       summary 中彙總已完成的工作與需要用戶確認的內容。一個對話只掛
+       一個窗口，不要並行多次調用本工具。
 
     Args:
         project_directory: Project directory path for context
         summary: Summary of AI work completed for user review
-        timeout: Timeout in seconds for waiting user feedback.
-            Clamped server-side to a usable range; see resolve_feedback_timeout.
+        timeout: Expected total waiting time in seconds (advisory only;
+            the server waits in short slices per call, see usage rule 2)
+        title: Window title (current task name), auto-adapted in the UI
+        session_id: Pass back the session_id from a [FEEDBACK_WAITING]
+            result to keep waiting on the same session and window
 
     Returns:
-        list: List containing TextContent and ImageContent objects representing user feedback
+        list: [FEEDBACK_WAITING] keep-waiting marker, or user feedback
+        (TextContent / ImageContent), or [CONVERSATION_ENDED] end signal
     """
     # 環境偵測
     is_remote = is_remote_environment()
@@ -540,14 +574,40 @@ async def interactive_feedback(
         effective_timeout = resolve_feedback_timeout(timeout)
         try:
             result = await launch_web_feedback_ui(
-                project_directory, summary, effective_timeout
+                project_directory,
+                summary,
+                effective_timeout,
+                title=title,
+                session_id=session_id,
             )
         except TimeoutError as e:
-            # 等待逾時或使用者關閉了介面：不是錯誤，是「沒有回饋」的正常結果。
-            # 只包住等待本身——之後的存檔／圖片處理若拋 TimeoutError（OSError
-            # ETIMEDOUT 亦屬此類），是真的錯誤，不能把已取得的回饋說成沒回應。
-            debug_log(f"未取得使用者回饋: {e}")
+            # 分片等待下不應走到這裡；保底也不得誘導結束對話（見 no_response_text）
+            debug_log(f"等待分片未取得使用者回饋: {e}")
             return [TextContent(type="text", text=no_response_text(str(e)))]
+
+        outcome = (result or {}).get("outcome")
+        result_session_id = (result or {}).get("session_id", "")
+
+        # 仍在等待：返回續等標記，呼叫端必須帶 session_id 立即續調，禁止終止
+        if outcome == "waiting":
+            waiting_text = (
+                f"[FEEDBACK_WAITING] session_id={result_session_id} "
+                f"title={(result or {}).get('title', '')}\n"
+                "用戶尚未在窗口內回覆。嚴禁終止對話、嚴禁輸出最終總結、"
+                "嚴禁改用其他方式徵求意見。請立即再次調用 "
+                "interactive_feedback，並帶上上面的 session_id 續等，"
+                "直到返回用戶回饋或 [CONVERSATION_ENDED] 為止。"
+            )
+            return [TextContent(type="text", text=waiting_text)]
+
+        # 用戶點擊「結束對話」：整個對話正式結束的唯一信號
+        if outcome == "ended":
+            ended_text = (
+                "[CONVERSATION_ENDED] 用戶已點擊窗口上的「結束對話」按鈕，"
+                "整個對話正式結束。請輸出最終總結，且不要再調用 "
+                "interactive_feedback。"
+            )
+            return [TextContent(type="text", text=ended_text)]
 
         # 處理取消情況
         if not result:
@@ -595,26 +655,36 @@ async def interactive_feedback(
         return [TextContent(type="text", text=user_error_msg)]
 
 
-async def launch_web_feedback_ui(project_dir: str, summary: str, timeout: int) -> dict:
+async def launch_web_feedback_ui(
+    project_dir: str,
+    summary: str,
+    timeout: int,
+    title: str = "",
+    session_id: str = "",
+) -> dict:
     """
-    啟動 Web UI 收集回饋，支援自訂超時時間
+    啟動/續接 Web UI 分片等待回饋
 
     Args:
         project_dir: 專案目錄路徑
         summary: AI 工作摘要
-        timeout: 超時時間（秒）
+        timeout: 期望總等待時間（秒，期望值）
+        title: 視窗標題（任務名）
+        session_id: 續等時帶入的會話 ID
 
     Returns:
-        dict: 收集到的回饋資料
+        dict: 含 outcome（feedback / ended / waiting）與 session_id
     """
-    debug_log(f"啟動 Web UI 介面，超時時間: {timeout} 秒")
+    debug_log(f"啟動 Web UI 介面，期望等待: {timeout} 秒（分片等待）")
 
     try:
         # 使用新的 web 模組
         from .web import launch_web_feedback_ui as web_launch
 
-        # 傳遞 timeout 參數給 Web UI
-        return await web_launch(project_dir, summary, timeout)
+        # 傳遞參數給 Web UI
+        return await web_launch(
+            project_dir, summary, timeout, title=title, session_id=session_id
+        )
     except ImportError as e:
         # 使用統一錯誤處理
         error_id = ErrorHandler.log_error_with_context(

@@ -41,6 +41,7 @@
         "submitSuccess": "Feedback submitted successfully!",
         "submittedWaiting": "Feedback submitted, waiting for next MCP call...",
         "waitingForUser": "Waiting for user feedback...",
+        "conversationEnded": "Conversation ended. The window will close.",
         "alreadySubmitted": "Feedback already submitted, please wait for next MCP call",
         "processingFeedback": "Processing, please wait",
         "connectingMessage": "WebSocket connecting, feedback will be submitted automatically when connection is ready...",
@@ -163,6 +164,7 @@
         "submit": "✅ Submit Feedback",
         "processing": "Processing...",
         "submitted": "Submitted",
+        "endConversation": "🛑 End Conversation",
         "retry": "Retry",
         "close": "Close",
         "upload": "Upload",
@@ -513,6 +515,7 @@
         "websocketReady": "WebSocket ready"
     },
     "session": {
+        "currentTask": "Current Task",
         "noActiveSession": "No active session",
         "created": "New MCP session created, page will refresh automatically",
         "updated": "Session updated",

@@ -328,7 +328,9 @@ class WebUIManager:
         else:
             raise RuntimeError(f"Templates directory not found: {web_templates_path}")
 
-    def create_session(self, project_directory: str, summary: str) -> str:
+    def create_session(
+        self, project_directory: str, summary: str, title: str = ""
+    ) -> str:
         """創建新的回饋會話 - 重構為單一活躍會話模式，保留標籤頁狀態"""
         # 保存舊會話的引用和 WebSocket 連接
         old_session = self.current_session
@@ -339,7 +341,9 @@ class WebUIManager:
 
         # 創建新會話
         session_id = str(uuid.uuid4())
-        session = WebFeedbackSession(session_id, project_directory, summary)
+        session = WebFeedbackSession(session_id, project_directory, summary, title=title)
+        # 視窗被誤關時自動重新拉起（單一視窗：拉起端互斥保證不雙開）
+        session.on_window_lost = lambda: self._relaunch_desktop_window(session)
 
         # 如果有舊會話，處理狀態轉換和清理
         if old_session:
@@ -662,17 +666,30 @@ class WebUIManager:
             self.open_browser(url)
             return False
 
-    async def launch_desktop_app(self, url: str) -> bool:
+    async def launch_desktop_app(self, url: str, title: str = "") -> bool:
         """
         啟動桌面應用程式
 
         Args:
             url: Web 服務 URL
+            title: 視窗標題（任務名），經環境變數交給桌面端自動適配
 
         Returns:
             bool: True 表示桌面應用程式已啟動；False 表示啟動失敗，
             由呼叫端決定退回 Web 模式（本方法不再自行開瀏覽器）
         """
+        # 單一視窗原則：已有存活的桌面視窗時只更新標題，不重複拉起
+        existing = getattr(self, "desktop_app_instance", None)
+        if existing is not None:
+            handle = getattr(existing, "app_handle", None)
+            if handle is not None and handle.poll() is None:
+                if title:
+                    existing.set_window_title(title)
+                debug_log("桌面視窗已在運行（單一視窗原則），跳過重複拉起")
+                return True
+
+        if title:
+            os.environ["MCP_WINDOW_TITLE"] = title
         try:
             # 嘗試導入桌面應用程式模組
             def import_desktop_app():
@@ -732,6 +749,32 @@ class WebUIManager:
                 debug_log(f"關閉桌面應用程式失敗: {e}")
         else:
             debug_log("沒有活躍的桌面應用程式實例")
+
+    def _relaunch_desktop_window(self, session) -> None:
+        """視窗被誤關時自動重新拉起（同步方法，供斷線計時器線程調用）。
+
+        單一視窗：已有存活視窗時不動作；只有桌面模式且會話仍在等待時才重拉。
+        關閉視窗不等於結束對話，這裡只負責把視窗找回来。
+        """
+        if os.environ.get("MCP_DESKTOP_MODE", "").lower() != "true":
+            return
+        if session is not self.current_session or session.feedback_completed.is_set():
+            return
+        app = getattr(self, "desktop_app_instance", None)
+        if app is None:
+            debug_log("沒有桌面應用實例，無法自動重新拉起視窗")
+            return
+        handle = getattr(app, "app_handle", None)
+        if handle is not None and handle.poll() is None:
+            debug_log("桌面視窗仍在運行，不重複拉起")
+            return
+        try:
+            app.set_window_title(session.title)
+            app.launch_tauri_app_sync(self.get_server_url())
+            debug_log(f"已自動重新拉起桌面視窗（會話 {session.session_id}）")
+        except Exception as e:
+            # 重拉失敗不結束等待：下一個等待分片/續調會再嘗試把視窗拉回
+            debug_log(f"自動重新拉起桌面視窗失敗: {e}")
 
     async def _safe_close_websocket(self, websocket):
         """安全關閉 WebSocket 連接，避免事件循環衝突 - 僅在連接已轉移後調用"""
@@ -1095,30 +1138,36 @@ def get_web_ui_manager() -> WebUIManager:
     return _web_ui_manager
 
 
+# 單次工具調用的最長等待時間片（秒）。宿主（如 Cursor）對單次 MCP 請求有
+# 硬超時（數十秒至數分鐘不等且不可配），任何「一次調用等到底」的設計都會
+# 被宿主先掐斷。因此改為分片：每次調用最多等一片就返回 waiting，由呼叫端
+# 在同一輪對話內帶 session_id 續調，直到收到回饋或用戶點「結束對話」。
+WAIT_SLICE_SECONDS = 45
+
+
 async def launch_web_feedback_ui(
-    project_directory: str, summary: str, timeout: int = 600
+    project_directory: str,
+    summary: str,
+    timeout: int = 600,
+    title: str = "",
+    session_id: str = "",
 ) -> dict:
     """
-    啟動 Web 回饋介面並等待用戶回饋 - 重構為使用根路徑
+    啟動/續接 Web 回饋介面並等待一個時間片。
 
     Args:
         project_directory: 專案目錄路徑
         summary: AI 工作摘要
-        timeout: 超時時間（秒）
+        timeout: 呼叫端期望的總等待（秒）；實際單次只等一片，見 WAIT_SLICE_SECONDS
+        title: 視窗標題（任務名），由呼叫端傳入自動適配
+        session_id: 續調時帶入首次返回的會話 ID，復用同一會話與同一視窗
 
     Returns:
-        dict: 回饋結果，包含 logs、interactive_feedback 和 images
+        dict: 含 session_id 與 outcome（feedback / ended / waiting）；
+        feedback 時另含 interactive_feedback 與 images（兼容舊欄位形狀）
     """
     manager = get_web_ui_manager()
 
-    # 創建新會話（每次AI調用都應該創建新會話）
-    manager.create_session(project_directory, summary)
-    session = manager.get_current_session()
-
-    if not session:
-        raise RuntimeError("無法創建回饋會話")
-
-    # 啟動伺服器（如果尚未啟動）
     if manager.server_thread is None or not manager.server_thread.is_alive():
         manager.start_server()
 
@@ -1128,40 +1177,53 @@ async def launch_web_feedback_ui(
     # 使用根路徑 URL
     feedback_url = manager.get_server_url()  # 直接使用根路徑
 
-    if desktop_mode and not await manager.launch_desktop_app(feedback_url):
-        # 桌面殼起不來（binary 缺失、被防毒隔離、glibc／Gatekeeper 擋下、隨即退出）：
-        # 本 process 改走 Web 模式。清掉環境變數是唯一的狀態來源——之後每次呼叫
-        # 都走 smart_open_browser（含活躍分頁偵測與會話更新通知），不會每次再試桌面、
-        # 再開一個新分頁。重啟 MCP server 會重新讀 IDE 設定再試桌面。
-        user_notice(f"本次改用瀏覽器介面：{feedback_url}")
-        os.environ.pop("MCP_DESKTOP_MODE", None)
-        desktop_mode = False
+    # 續調：復用既有會話與視窗，不新建會話、不新開視窗
+    session = None
+    if session_id:
+        session = manager.get_session(session_id)
+        if session is not None and session.is_terminal():
+            session = None  # 已結束的舊會話不復用，走新建
 
-    # 桌面殼本身就是介面；Web 模式才智能開啟瀏覽器（含活躍分頁偵測）
-    has_active_tabs = desktop_mode or await manager.smart_open_browser(feedback_url)
+    if session is None:
+        # 創建新會話（首次調用，或續調的會話已不存在）
+        manager.create_session(project_directory, summary, title=title)
+        session = manager.get_current_session()
 
-    debug_log(f"[DEBUG] 服務器地址: {feedback_url}")
+        if not session:
+            raise RuntimeError("無法創建回饋會話")
 
-    # 如果檢測到活躍標籤頁，消息已在 smart_open_browser 中發送，無需額外處理
-    if has_active_tabs:
-        debug_log("檢測到活躍標籤頁，會話更新通知已發送")
+        if desktop_mode and not await manager.launch_desktop_app(
+            feedback_url, session.title
+        ):
+            # 桌面殼起不來（binary 缺失、被防毒隔離、glibc／Gatekeeper 擋下、隨即退出）：
+            # 本 process 改走 Web 模式。清掉環境變數是唯一的狀態來源——之後每次呼叫
+            # 都走 smart_open_browser（含活躍分頁偵測與會話更新通知），不會每次再試桌面、
+            # 再開一個新分頁。重啟 MCP server 會重新讀 IDE 設定再試桌面。
+            user_notice(f"本次改用瀏覽器介面：{feedback_url}")
+            os.environ.pop("MCP_DESKTOP_MODE", None)
+            desktop_mode = False
 
-    try:
-        # 等待用戶回饋，傳遞 timeout 參數
-        result = await session.wait_for_feedback(timeout)
-        debug_log("收到用戶回饋")
-        return result
-    except TimeoutError:
-        debug_log("會話超時")
-        # 資源已在 wait_for_feedback 中清理，這裡只需要記錄和重新拋出
-        raise
-    except Exception as e:
-        debug_log(f"會話發生錯誤: {e}")
-        raise
-    finally:
-        # 注意：不再自動清理會話和停止服務器，保持持久性
-        # 會話將保持活躍狀態，等待下次 MCP 調用
-        debug_log("會話保持活躍狀態，等待下次 MCP 調用")
+        # 桌面殼本身就是介面；Web 模式才智能開啟瀏覽器（含活躍分頁偵測）
+        has_active_tabs = desktop_mode or await manager.smart_open_browser(feedback_url)
+
+        debug_log(f"[DEBUG] 服務器地址: {feedback_url}")
+
+        # 如果檢測到活躍標籤頁，消息已在 smart_open_browser 中發送，無需額外處理
+        if has_active_tabs:
+            debug_log("檢測到活躍標籤頁，會話更新通知已發送")
+    elif desktop_mode:
+        # 續調時若視窗被誤關且斷線重拉未生效，在此再把單一視窗拉回
+        manager._relaunch_desktop_window(session)
+
+    # 分片等待：到期無結果只返回 waiting，不清理會話、不關視窗
+    slice_seconds = max(1, min(int(timeout or WAIT_SLICE_SECONDS), WAIT_SLICE_SECONDS))
+    result = await session.wait_slice(slice_seconds)
+    result["session_id"] = session.session_id
+    result["title"] = session.title
+    debug_log(
+        f"會話 {session.session_id} 本片等待結果: {result['outcome']}（保持活躍，等待續調）"
+    )
+    return result
 
 
 def stop_web_ui():

@@ -310,6 +310,14 @@
                 });
             });
 
+            // 結束對話按鈕事件（只有它可以正式結束整個對話）
+            const endConversationBtn = window.MCPFeedback.Utils.safeQuerySelector('#endConversationBtn');
+            if (endConversationBtn) {
+                endConversationBtn.addEventListener('click', function() {
+                    self.endConversation();
+                });
+            }
+
             // 取消按鈕事件 - 已移除取消按鈕，保留 ESC 快捷鍵功能
 
             // 複製用戶內容按鈕
@@ -664,6 +672,10 @@
                 console.log('🖥️ 收到桌面關閉請求');
                 this.handleDesktopCloseRequest(data);
                 break;
+            case 'conversation_ended':
+                console.log('🛑 對話已正式結束');
+                this.handleConversationEnded();
+                break;
             case 'notification':
                 console.log('📢 收到通知:', data);
                 // 處理 FEEDBACK_SUBMITTED 通知
@@ -743,6 +755,40 @@
             this.sessionManager.dataManager.loadFromServer();
         } else {
             console.log('⚠️ 會話管理器未初始化，跳過會話列表刷新');
+        }
+    };
+
+    /**
+     * 視窗/頁面標題自動適配：以當前任務名（會話標題）為準，
+     * 無標題時回退為「MCP Feedback - 專案目錄名」。同時盡力同步
+     * Tauri 系統窗口標題（權限不足時靜默忽略，不影響頁面內標題）。
+     */
+    FeedbackApp.prototype.applySessionTitle = function(info) {
+        if (!info) {
+            return;
+        }
+        let displayTitle = info.title;
+        if (!displayTitle && info.project_directory) {
+            const projectName = info.project_directory.split(/[/\\]/).pop();
+            displayTitle = 'MCP Feedback - ' + projectName;
+        }
+        if (!displayTitle) {
+            return;
+        }
+
+        document.title = displayTitle;
+
+        const titleText = window.MCPFeedback.Utils.safeQuerySelector('#sessionTitleText');
+        if (titleText && info.title) {
+            titleText.textContent = info.title;
+        }
+
+        if (window.__TAURI__ && window.__TAURI__.window) {
+            try {
+                window.__TAURI__.window.getCurrentWindow().setTitle(displayTitle);
+            } catch (error) {
+                console.log('同步 Tauri 窗口標題失敗（忽略）:', error);
+            }
         }
     };
 
@@ -940,11 +986,8 @@
                 self.checkAndStartAutoSubmit();
             }, 200); // 延遲確保狀態更新完成
 
-            // 更新頁面標題
-            if (data.session_info.project_directory) {
-                const projectName = data.session_info.project_directory.split(/[/\\]/).pop();
-                document.title = 'MCP Feedback - ' + projectName;
-            }
+            // 更新頁面標題（以任務名自動適配）
+            this.applySessionTitle(data.session_info);
 
             // 使用局部更新替代整頁刷新
             this.refreshPageContent();
@@ -988,11 +1031,8 @@
             this.sessionManager.updateStatusInfo(statusInfo);
         }
 
-        // 更新頁面標題顯示會話信息
-        if (statusInfo.project_directory) {
-            const projectName = statusInfo.project_directory.split(/[/\\]/).pop();
-            document.title = 'MCP Feedback - ' + projectName;
-        }
+        // 更新頁面標題顯示會話信息（以任務名自動適配）
+        this.applySessionTitle(statusInfo);
 
         // 使用之前已聲明的 sessionId
 
@@ -1040,6 +1080,56 @@
         } else {
             // 回退到原始方法（防抖未初始化時）
             this._originalHandleStatusUpdate(statusInfo);
+        }
+    };
+
+    /**
+     * 結束對話：通知伺服器正式結束整個對話。
+     * 與關閉視窗嚴格區分——關窗只會讓視窗自動重新拉起並繼續等待，
+     * 只有點擊此按鈕，AI 才會收到正式結束信號並收尾。
+     */
+    FeedbackApp.prototype.endConversation = function() {
+        console.log('🛑 用戶點擊結束對話');
+
+        if (!this.webSocketManager || !this.webSocketManager.isReady()) {
+            const connectingMessage = window.i18nManager ? window.i18nManager.t('feedback.connectingMessage') : 'WebSocket 連接中，請稍候再試';
+            window.MCPFeedback.Utils.showMessage(connectingMessage, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_WARNING);
+            return;
+        }
+
+        const success = this.webSocketManager.send({ type: 'end_conversation' });
+        if (success) {
+            const endBtn = window.MCPFeedback.Utils.safeQuerySelector('#endConversationBtn');
+            if (endBtn) {
+                endBtn.disabled = true;
+            }
+            const submitBtn = window.MCPFeedback.Utils.safeQuerySelector('#submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+            }
+            const endedMessage = window.i18nManager ? window.i18nManager.t('feedback.conversationEnded') : '對話已正式結束，窗口即將關閉';
+            this.updateSummaryStatus(endedMessage);
+            window.MCPFeedback.Utils.showMessage(endedMessage, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_SUCCESS);
+        } else {
+            const sendFailedMessage = window.i18nManager ? window.i18nManager.t('feedback.sendFailed') : '發送失敗，請重試';
+            window.MCPFeedback.Utils.showMessage(sendFailedMessage, window.MCPFeedback.Utils.CONSTANTS.MESSAGE_ERROR);
+        }
+    };
+
+    /**
+     * 處理伺服器確認的對話結束（桌面端會由後端直接關窗，這裡做前端收尾）
+     */
+    FeedbackApp.prototype.handleConversationEnded = function() {
+        const endedMessage = window.i18nManager ? window.i18nManager.t('feedback.conversationEnded') : '對話已正式結束，窗口即將關閉';
+        this.updateSummaryStatus(endedMessage);
+
+        const endBtn = window.MCPFeedback.Utils.safeQuerySelector('#endConversationBtn');
+        if (endBtn) {
+            endBtn.disabled = true;
+        }
+        const submitBtn = window.MCPFeedback.Utils.safeQuerySelector('#submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
         }
     };
 
@@ -1402,11 +1492,8 @@
                     self.uiManager.updateStatusIndicator();
                 }
 
-                // 更新頁面標題
-                if (sessionData.project_directory) {
-                    const projectName = sessionData.project_directory.split(/[/\\]/).pop();
-                    document.title = 'MCP Feedback - ' + projectName;
-                }
+                // 更新頁面標題（以任務名自動適配）
+                self.applySessionTitle(sessionData);
 
                 console.log('✅ 局部更新完成');
             })

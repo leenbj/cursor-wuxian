@@ -31,6 +31,7 @@ class DesktopApp:
         self.web_manager: WebUIManager | None = None
         self.desktop_mode = False
         self.app_handle = None
+        self.window_title: str = os.environ.get("MCP_WINDOW_TITLE", "")
 
     def set_desktop_mode(self, enabled: bool = True):
         """設置桌面模式"""
@@ -102,15 +103,16 @@ class DesktopApp:
             debug_log(f"測試會話已創建: {session_id}")
             return session_id
 
-    async def launch_tauri_app(self, server_url: str):
-        """啟動 Tauri 桌面應用程式"""
-        debug_log("正在啟動 Tauri 桌面視窗...")
+    def set_window_title(self, title: str):
+        """設置桌面視窗標題（任務名），拉起時經環境變數交給 Tauri 端適配"""
+        self.window_title = title or ""
+        if title:
+            os.environ["MCP_WINDOW_TITLE"] = title
 
-        import os
-        import subprocess
+    def _resolve_tauri_exe(self):
+        """找到 Tauri 可執行檔案（打包位置優先，開發環境回退）"""
         from pathlib import Path
 
-        # 找到 Tauri 可執行檔案
         # 首先嘗試從打包後的位置找（PyPI 安裝後的位置）
         try:
             from mcp_feedback_enhanced.desktop_release import __file__ as desktop_init
@@ -210,52 +212,85 @@ class DesktopApp:
                 ) from None
 
         debug_log(f"找到 Tauri 可執行檔案: {tauri_exe}")
+        return tauri_exe
+
+    def _popen_tauri(self, server_url: str):
+        """同步拉起 Tauri 進程並記錄句柄（單例互斥由呼叫端檢查存活狀態）"""
+        import subprocess
+
+        tauri_exe = self._resolve_tauri_exe()
 
         # 設置環境變數
         env = os.environ.copy()
         env["MCP_DESKTOP_MODE"] = "true"
         env["MCP_WEB_URL"] = server_url
+        # 視窗標題自動適配：把當前任務名交給 Tauri 端設置窗口標題
+        title = getattr(self, "window_title", "") or os.environ.get(
+            "MCP_WINDOW_TITLE", ""
+        )
+        if title:
+            env["MCP_WINDOW_TITLE"] = title
 
-        # 啟動 Tauri 應用程式
-        try:
-            # Windows 下隱藏控制台視窗
-            creation_flags = 0
-            if os.name == "nt":
-                # CREATE_NO_WINDOW 只在 Windows 上存在
-                creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        # Windows 下隱藏控制台視窗
+        creation_flags = 0
+        if os.name == "nt":
+            # CREATE_NO_WINDOW 只在 Windows 上存在
+            creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
 
-            self.app_handle = subprocess.Popen(
-                [str(tauri_exe)],
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                creationflags=creation_flags,
+        self.app_handle = subprocess.Popen(
+            [str(tauri_exe)],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            creationflags=creation_flags,
+        )
+        debug_log("Tauri 桌面應用程式已啟動")
+        return self.app_handle
+
+    def _raise_if_exited(self):
+        """觀察期內以非零碼退出視為啟動失敗（殺毒隔離、Gatekeeper 等）。
+
+        exit 0 是使用者自己關了視窗，沿用既有語意（不算失敗）。
+        """
+        if not self.app_handle:
+            return
+        exit_code = self.app_handle.poll()
+        if exit_code:
+            stderr_tail = ""
+            try:
+                # 子程序可能把 stderr 寫端留給 WebView 等後代，read() 會等到它們
+                # 全部關閉；用有上限的 communicate，逾時就放棄尾段、只報 exit code
+                _, err = self.app_handle.communicate(timeout=1)
+                stderr_tail = (err or b"").decode("utf-8", "replace")[-500:]
+            except Exception:
+                pass
+            self.app_handle = None
+            raise RuntimeError(
+                f"桌面應用程式啟動後隨即退出（exit code {exit_code}）"
+                + (f"：{stderr_tail.strip()}" if stderr_tail.strip() else "")
             )
-            debug_log("Tauri 桌面應用程式已啟動")
 
-            # 等待一下確保應用程式啟動。觀察期內以非零碼退出（Defender 隔離、glibc
-            # 太舊、Gatekeeper 擋下、缺 WebView runtime）視為啟動失敗，讓呼叫端退回
-            # 瀏覽器；否則使用者面前什麼都沒有，只能等到 timeout。exit 0 是使用者
-            # 自己關了視窗，沿用既有語意（不算失敗）。
+    async def launch_tauri_app(self, server_url: str):
+        """啟動 Tauri 桌面應用程式"""
+        debug_log("正在啟動 Tauri 桌面視窗...")
+        try:
+            self._popen_tauri(server_url)
+            # 等待一下確保應用程式啟動
             await asyncio.sleep(2)
-            exit_code = self.app_handle.poll()
-            if exit_code:
-                stderr_tail = ""
-                try:
-                    # 子程序可能把 stderr 寫端留給 WebView 等後代，read() 會等到它們
-                    # 全部關閉；用有上限的 communicate，逾時就放棄尾段、只報 exit code
-                    _, err = self.app_handle.communicate(timeout=1)
-                    stderr_tail = (err or b"").decode("utf-8", "replace")[-500:]
-                except Exception:
-                    pass
-                self.app_handle = None
-                raise RuntimeError(
-                    f"桌面應用程式啟動後隨即退出（exit code {exit_code}）"
-                    + (f"：{stderr_tail.strip()}" if stderr_tail.strip() else "")
-                )
-
+            self._raise_if_exited()
         except Exception as e:
             debug_log(f"啟動 Tauri 應用程式失敗: {e}")
+            raise
+
+    def launch_tauri_app_sync(self, server_url: str):
+        """同步啟動 Tauri（供斷線重拉等非事件循環線程調用），語意同 async 版"""
+        debug_log("正在同步啟動 Tauri 桌面視窗...")
+        try:
+            self._popen_tauri(server_url)
+            time.sleep(2)
+            self._raise_if_exited()
+        except Exception as e:
+            debug_log(f"同步啟動 Tauri 應用程式失敗: {e}")
             raise
 
     def stop(self):

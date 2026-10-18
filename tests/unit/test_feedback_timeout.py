@@ -116,16 +116,17 @@ class TestWaitTimeoutMargin:
             session._cleanup_sync()
 
 
-class TestNoResponseTellsClientToStop:
-    """#125：沒有回饋時必須回傳明確的結束指令
+class TestNoResponseTellsClientToKeepWaiting:
+    """沒有回饋時必須回傳「繼續等待」指令，嚴禁誘導結束對話。
 
-    舊版回傳 ErrorHandler 的「操作超時／增加超時時間設置」，客戶端把它當成
-    可重試的一般錯誤再次呼叫本工具，使用者不在時就形成無限循環。
+    舊版（#125）在無回饋時指示「視為使用者離開、直接結束任務」，導致
+    用戶稍作停頓對話就被提前收尾。現行協議改為分片等待：未收到用戶
+    明確回饋或「結束對話」信號前，不得終止對話。
     """
 
     @pytest.mark.asyncio
-    async def test_timeout_returns_stop_instruction(self, monkeypatch):
-        async def fake_launch(*_args):
+    async def test_timeout_returns_keep_waiting_instruction(self, monkeypatch):
+        async def fake_launch(*_args, **_kwargs):
             raise TimeoutError("等待用戶回饋超時（595秒），介面已自動關閉")
 
         monkeypatch.setattr(server, "launch_web_feedback_ui", fake_launch)
@@ -136,16 +137,16 @@ class TestNoResponseTellsClientToStop:
         result = await tool_fn(project_directory=".", summary="摘要", timeout=600)
 
         text = result[0].text
-        assert "不要再次呼叫 interactive_feedback" in text
-        assert "do NOT call interactive_feedback again" in text
+        assert "嚴禁終止對話" in text
+        assert "再次呼叫 interactive_feedback" in text, "必須指示續等而非結束"
         assert "595" in text, "原因必須帶入，讓使用者事後能從對話看出發生了什麼"
-        assert "增加超時時間" not in text, "不得再建議重試"
+        assert "不要再次呼叫 interactive_feedback" not in text, "不得再指示停止呼叫"
 
     @pytest.mark.asyncio
     async def test_timeout_after_feedback_arrived_is_not_no_response(self, monkeypatch):
         """取得回饋之後的 TimeoutError（如存檔 I/O 的 ETIMEDOUT）是真錯誤，不能把回饋說成沒回應"""
 
-        async def fake_launch(*_args):
+        async def fake_launch(*_args, **_kwargs):
             return {"interactive_feedback": "真實回饋", "images": [], "settings": {}}
 
         def fake_save(_result):
@@ -161,18 +162,87 @@ class TestNoResponseTellsClientToStop:
 
         assert "使用者未回應" not in result[0].text
 
-    def test_tool_description_allows_stopping_on_no_response(self):
-        """工具描述的 USAGE RULES 不得與回傳的結束指令互相矛盾"""
+    def test_tool_description_requires_waiting_until_feedback_or_end(self):
+        """工具描述必須寫明強制等待協議：waiting 續調、ended 才可結束"""
         doc = server.interactive_feedback.__doc__ or ""
 
-        assert "no user response" in doc, (
-            "描述必須把『使用者未回應』列為可停止呼叫的條件"
+        assert "[FEEDBACK_WAITING]" in doc, "描述必須包含仍在等待的返回標記"
+        assert "session_id" in doc, "描述必須要求續調時帶回 session_id"
+        assert "[CONVERSATION_ENDED]" in doc, "描述必須包含正式結束信號"
+        assert "do NOT call this tool again" not in doc, (
+            "不得再把無回應描述為可停止呼叫的條件"
         )
-        assert "do NOT call this tool again" in doc
+
+
+class TestWaitingProtocolOutcomes:
+    """分片等待三態：waiting 續等標記 / ended 結束信號 / feedback 原樣回傳"""
+
+    @pytest.mark.asyncio
+    async def test_waiting_outcome_returns_keep_waiting_marker(self, monkeypatch):
+        async def fake_launch(*_args, **_kwargs):
+            return {
+                "outcome": "waiting",
+                "session_id": "sess-123",
+                "title": "任務甲",
+                "interactive_feedback": "",
+                "images": [],
+            }
+
+        monkeypatch.setattr(server, "launch_web_feedback_ui", fake_launch)
+        tool_fn = getattr(
+            server.interactive_feedback, "fn", server.interactive_feedback
+        )
+
+        result = await tool_fn(project_directory=".", summary="摘要", timeout=600)
+
+        text = result[0].text
+        assert text.startswith("[FEEDBACK_WAITING]")
+        assert "session_id=sess-123" in text
+        assert "嚴禁終止對話" in text
+
+    @pytest.mark.asyncio
+    async def test_ended_outcome_returns_end_signal(self, monkeypatch):
+        async def fake_launch(*_args, **_kwargs):
+            return {
+                "outcome": "ended",
+                "session_id": "sess-123",
+                "interactive_feedback": "",
+                "images": [],
+            }
+
+        monkeypatch.setattr(server, "launch_web_feedback_ui", fake_launch)
+        tool_fn = getattr(
+            server.interactive_feedback, "fn", server.interactive_feedback
+        )
+
+        result = await tool_fn(project_directory=".", summary="摘要", timeout=600)
+
+        text = result[0].text
+        assert text.startswith("[CONVERSATION_ENDED]")
+        assert "結束對話" in text
+
+    @pytest.mark.asyncio
+    async def test_end_conversation_marks_session_and_wakes_waiter(self, test_project_dir):
+        """點擊結束對話：會話標記 ended 並喚醒等待端（與關窗嚴格區分）"""
+        session = WebFeedbackSession("t-end", str(test_project_dir), "摘要")
+        try:
+            session.end_conversation()
+
+            assert session.ended_by_user
+            assert session.status is SessionStatus.ENDED
+
+            result = await session.wait_slice(1)
+            assert result["outcome"] == "ended"
+        finally:
+            session._cleanup_sync()
 
 
 class TestClientDisconnectGrace:
-    """#162：使用者關閉分頁／視窗後不再空等到 timeout，但重新整理不得誤判"""
+    """關閉視窗不等於結束對話：誤關後自動重新拉起，會話保持等待。
+
+    舊行為（#162）是寬限到期即把等待判成超時結束；新需求明確要求
+    只有點「結束對話」按鈕才結束，誤關必須把單一視窗拉回來。
+    """
 
     @pytest.fixture
     def session(self, monkeypatch, test_project_dir):
@@ -182,26 +252,34 @@ class TestClientDisconnectGrace:
         s._cleanup_sync()
 
     @pytest.mark.asyncio
-    async def test_disconnect_without_reconnect_ends_wait(self, session):
+    async def test_disconnect_without_reconnect_relaunches_and_keeps_waiting(
+        self, session
+    ):
+        relaunched = threading.Event()
+        session.on_window_lost = relaunched.set
+
         session.on_client_disconnected()
 
-        start = time.monotonic()
-        with pytest.raises(TimeoutError, match="使用者已關閉回饋介面"):
-            await session.wait_for_feedback(timeout=60)
+        assert relaunched.wait(2), "寬限到期必須觸發自動重新拉起"
+        assert not session.feedback_completed.is_set(), "關窗不得結束等待"
+        assert session.status is SessionStatus.WAITING
 
-        assert time.monotonic() - start < 5, "必須在寬限到期時結束，而非等到 timeout"
+        result = await session.wait_slice(1)
+        assert result["outcome"] == "waiting"
 
     @pytest.mark.asyncio
-    async def test_feedback_arriving_after_give_up_wins(self, session):
-        """回呼已把狀態寫成 TIMEOUT，但等待端讀取前回饋送達：回饋為準，不丟"""
+    async def test_feedback_arriving_after_relaunch_window_wins(self, session):
+        """視窗被誤關並重拉後使用者送出回饋：等待端必須拿到回饋"""
+        relaunched = threading.Event()
+        session.on_window_lost = relaunched.set
         session.on_client_disconnected()
-        assert session.feedback_completed.wait(2), "寬限回呼未到期"
-        assert session.status is SessionStatus.TIMEOUT
+        assert relaunched.wait(2), "寬限回呼未到期"
 
         await session.submit_feedback("使用者剛好送出的回饋", [], {})
 
-        result = await session.wait_for_feedback(timeout=60)
+        result = await session.wait_slice(1)
 
+        assert result["outcome"] == "feedback"
         assert result["interactive_feedback"] == "使用者剛好送出的回饋"
 
     @pytest.mark.asyncio
@@ -262,7 +340,7 @@ class TestClientDisconnectGrace:
 
 
 class TestWebSocketLifecycleWiring:
-    """#162 的接線在 /ws 端點：登記的連線斷開才啟動寬限，重連即取消"""
+    """/ws 端點接線：登記的連線斷開才啟動寬限，誤關觸發重拉且不結束等待"""
 
     @pytest.fixture
     def wired(self, monkeypatch, web_ui_manager, test_project_dir):
@@ -274,17 +352,17 @@ class TestWebSocketLifecycleWiring:
         yield session, client, origin
         session._cleanup_sync()
 
-    def test_ws_disconnect_ends_wait_after_grace(self, wired):
+    def test_ws_disconnect_relaunches_and_keeps_waiting_after_grace(self, wired):
         session, client, origin = wired
+        relaunched = threading.Event()
+        session.on_window_lost = relaunched.set
 
         with client.websocket_connect("/ws", headers=origin) as ws:
             ws.receive_json()  # connection_established
 
-        assert session.feedback_completed.wait(2), (
-            "登記的連線斷開後，寬限到期必須喚醒等待"
-        )
-        assert session.status is SessionStatus.TIMEOUT
-        assert session.status_message == "使用者已關閉回饋介面"
+        assert relaunched.wait(2), "登記的連線斷開後，寬限到期必須觸發重新拉起"
+        assert not session.feedback_completed.is_set(), "關窗不得結束等待"
+        assert session.status is SessionStatus.WAITING
 
     def test_ws_reconnect_within_grace_keeps_waiting(self, wired):
         session, client, origin = wired

@@ -118,7 +118,7 @@ class TestHealthyDesktopDoesNotTouchBrowser:
     ):
         manager, project_dir, opened = desktop_env
 
-        async def launched(url):
+        async def launched(url, title=""):
             return True
 
         monkeypatch.setattr(manager, "launch_desktop_app", launched)

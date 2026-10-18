@@ -41,6 +41,7 @@
         "submitSuccess": "反馈提交成功！",
         "submittedWaiting": "已送出反馈，等待下次 MCP 调用...",
         "waitingForUser": "等待用户反馈...",
+        "conversationEnded": "对话已正式结束，窗口即将关闭",
         "alreadySubmitted": "反馈已提交，请等待下次 MCP 调用",
         "processingFeedback": "正在处理中，请稍候",
         "connectingMessage": "WebSocket 连接中，反馈将在连接就绪后自动提交...",
@@ -164,6 +165,7 @@
         "submit": "✅ 提交反馈",
         "processing": "处理中...",
         "submitted": "已提交",
+        "endConversation": "🛑 结束对话",
         "retry": "重试",
         "close": "关闭",
         "upload": "上传",
@@ -507,6 +509,7 @@
         "websocketError": "WebSocket 错误"
     },
     "session": {
+        "currentTask": "当前任务",
         "noActiveSession": "没有活跃会话",
         "created": "新的 MCP 会话已创建，页面将自动刷新",
         "updated": "会话已更新",

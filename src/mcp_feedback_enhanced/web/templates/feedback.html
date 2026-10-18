@@ -62,6 +62,64 @@
 
 
 
+        /* 任務標題列與結束對話按鈕（導航欄最右側） */
+        .session-title-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 4px;
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+
+        .session-title-label {
+            color: var(--text-secondary, #9e9e9e);
+            white-space: nowrap;
+        }
+
+        .session-title-text {
+            font-weight: 600;
+            color: var(--text-primary, #cccccc);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tabs {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .btn-end-conversation {
+            background: linear-gradient(180deg, #e5534b 0%, #c93a32 100%);
+            color: #ffffff;
+            border: 1px solid #a93226;
+            border-radius: 6px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .btn-end-conversation:hover {
+            background: linear-gradient(180deg, #f06055 0%, #d8433a 100%);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+
+        .btn-end-conversation:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+        }
+
+        .btn-end-conversation:disabled {
+            background: linear-gradient(180deg, #a94442 0%, #8e2f2a 100%);
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* 工作區分頁的水平佈局樣式 */
         #tab-combined.active.combined-horizontal .combined-content {
             display: flex !important;
@@ -469,6 +527,12 @@
             <!-- ===== 主要內容區域 ===== -->
             <div class="main-content-area">
 
+                <!-- 任務標題列：以當前任務對話標題自動適配 -->
+                <div class="session-title-bar" id="sessionTitleBar">
+                    <span class="session-title-label" data-i18n="session.currentTask">當前任務</span>
+                    <span class="session-title-text" id="sessionTitleText">{{ session_title }}</span>
+                </div>
+
                 <!-- 分頁導航 -->
                 <div class="tabs">
                 <div class="tab-buttons">
@@ -489,6 +553,10 @@
                         ℹ️ 關於
                     </button>
                 </div>
+                <!-- 結束對話：導航欄最右側、提交回饋上方；只有點擊它對話才正式結束 -->
+                <button id="endConversationBtn" class="btn btn-end-conversation" data-i18n="buttons.endConversation">
+                    🛑 結束對話
+                </button>
             </div>
 
 

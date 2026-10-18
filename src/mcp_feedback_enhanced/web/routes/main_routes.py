@@ -135,7 +135,9 @@ def setup_routes(manager: "WebUIManager"):
                 "session_id": current_session.session_id,
                 "project_directory": current_session.project_directory,
                 "summary": current_session.summary,
-                "title": "Interactive Feedback - 回饋收集",
+                # 視窗/頁籤標題以任務名（會話標題）自動適配
+                "title": current_session.title,
+                "session_title": current_session.title,
                 "version": __version__,
                 "has_session": True,
                 "layout_mode": layout_mode,
@@ -197,6 +199,8 @@ def setup_routes(manager: "WebUIManager"):
                 "has_session": True,
                 "status": "active",
                 "session_info": {
+                    "session_id": current_session.session_id,
+                    "title": current_session.title,
                     "project_directory": current_session.project_directory,
                     "summary": current_session.summary,
                     "feedback_completed": current_session.feedback_completed.is_set(),
@@ -223,6 +227,7 @@ def setup_routes(manager: "WebUIManager"):
         return JSONResponse(
             content={
                 "session_id": current_session.session_id,
+                "title": current_session.title,
                 "project_directory": current_session.project_directory,
                 "summary": current_session.summary,
                 "feedback_completed": current_session.feedback_completed.is_set(),
@@ -358,6 +363,7 @@ def setup_routes(manager: "WebUIManager"):
                             "project_directory": session.project_directory,
                             "summary": session.summary,
                             "session_id": session.session_id,
+                            "title": session.title,
                         },
                     }
                 )
@@ -688,6 +694,33 @@ async def handle_websocket_message(manager: "WebUIManager", session, data: dict)
         images = data.get("images", [])
         settings = data.get("settings", {})
         await session.submit_feedback(feedback, images, settings)
+
+    elif message_type == "end_conversation":
+        # 用戶點擊「結束對話」按鈕：唯一能正式結束整個對話的操作
+        debug_log(f"收到結束對話請求: {session.session_id}")
+        session.end_conversation()
+
+        # 通知前端對話已結束
+        if session.websocket:
+            try:
+                await session.websocket.send_json(
+                    {
+                        "type": "conversation_ended",
+                        "status": session.status.value,
+                    }
+                )
+            except Exception as e:
+                debug_log(f"發送結束通知失敗: {e}")
+
+        # 桌面模式下結束後立即關閉視窗
+        import os
+
+        if os.environ.get("MCP_DESKTOP_MODE", "").lower() == "true":
+            try:
+                manager.close_desktop_app()
+                debug_log("結束對話：桌面應用程式已關閉")
+            except Exception as close_error:
+                debug_log(f"結束對話關閉桌面應用程式失敗: {close_error}")
 
     elif message_type == "get_status":
         # 獲取會話狀態

@@ -46,6 +46,7 @@
         "submitSuccess": "回饋提交成功！",
         "submittedWaiting": "已送出反饋，等待下次 MCP 調用...",
         "waitingForUser": "等待用戶回饋...",
+        "conversationEnded": "對話已正式結束，窗口即將關閉",
         "alreadySubmitted": "回饋已提交，請等待下次 MCP 調用",
         "processingFeedback": "正在處理中，請稍候",
         "connectingMessage": "WebSocket 連接中，回饋將在連接就緒後自動提交...",
@@ -169,6 +170,7 @@
         "submit": "✅ 提交回饋",
         "processing": "處理中...",
         "submitted": "已提交",
+        "endConversation": "🛑 結束對話",
         "retry": "重試",
         "close": "關閉",
         "upload": "上傳",
@@ -518,6 +520,7 @@
         "websocketReady": "WebSocket 已就緒"
     },
     "session": {
+        "currentTask": "當前任務",
         "noActiveSession": "沒有活躍會話",
         "created": "新的 MCP 會話已創建，頁面將自動刷新",
         "updated": "會話已更新",
