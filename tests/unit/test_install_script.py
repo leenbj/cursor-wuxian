@@ -152,3 +152,56 @@ class TestIdempotent:
         ) == first_mtimes, "内容未变时不应重写配置文件"
         # 重复运行不能堆积备份文件
         assert backups(mcp_json(tmp_path)) + backups(rule_file(tmp_path)) == first_backups
+
+
+class TestBinaryResolution:
+    """写进 mcp.json 的必须是 uv 刚装好的那份，而不是 PATH 上碰巧更靠前的旧副本。
+
+    意图：用户机器上常有上游旧版（pipx / 旧 uv tool 等）排在 PATH 前面；
+    若取了旧副本，用户装完仍是没有「强制等待」修复的老版本，而且毫无报错。
+    """
+
+    @staticmethod
+    def _make_exe(path: Path) -> Path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("#!/bin/sh\nexit 0\n", "utf-8")
+        path.chmod(0o755)
+        return path
+
+    @staticmethod
+    def _fake_uv(home: Path, bin_dir: Path) -> None:
+        # 模拟 `uv tool dir --bin`：uv 把工具装到哪里就返回哪里
+        shim = home / "_shim"
+        shim.mkdir(exist_ok=True)
+        uv = shim / "uv"
+        uv.write_text(
+            f'#!/bin/sh\nif [ "$1 $2 $3" = "tool dir --bin" ]; then echo "{bin_dir}"; fi\n',
+            "utf-8",
+        )
+        uv.chmod(0o755)
+
+    @staticmethod
+    def _command(home: Path) -> str:
+        data = json.loads(mcp_json(home).read_text("utf-8"))
+        return data["mcpServers"]["mcp-feedback-enhanced"]["command"]
+
+    def test_prefers_uv_installed_binary_over_stale_copy_earlier_on_path(self, tmp_path):
+        fresh = self._make_exe(tmp_path / "uv-bin" / "mcp-feedback-enhanced")
+        stale = self._make_exe(tmp_path / "stale" / "mcp-feedback-enhanced")
+        self._fake_uv(tmp_path, fresh.parent)
+
+        r = run_install(tmp_path, PATH=f"{stale.parent}:{tmp_path / '_shim'}:/usr/bin:/bin")
+
+        assert r.returncode == 0, r.stderr
+        assert self._command(tmp_path) == str(fresh)
+
+    def test_falls_back_to_path_copy_when_uv_bin_dir_has_none(self, tmp_path):
+        empty_uv_bin = tmp_path / "uv-bin"
+        empty_uv_bin.mkdir()
+        on_path = self._make_exe(tmp_path / "other" / "mcp-feedback-enhanced")
+        self._fake_uv(tmp_path, empty_uv_bin)
+
+        r = run_install(tmp_path, PATH=f"{on_path.parent}:{tmp_path / '_shim'}:/usr/bin:/bin")
+
+        assert r.returncode == 0, r.stderr
+        assert self._command(tmp_path) == str(on_path)

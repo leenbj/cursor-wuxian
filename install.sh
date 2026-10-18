@@ -44,8 +44,24 @@ if [ "${SKIP_TOOL_INSTALL:-}" != "1" ]; then
   UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-600}" uv tool install --force "$src"
 fi
 
-BIN="$(command -v mcp-feedback-enhanced 2>/dev/null || true)"
-[ -n "$BIN" ] || BIN="$HOME/.local/bin/mcp-feedback-enhanced"
+# 写进 mcp.json 的可执行文件：优先 uv 实际安装的那份。
+# 不能直接取 PATH 上第一个同名文件——排在前面的旧副本（如上游旧版）会让用户装完仍是没有修复的老版本，且毫无报错
+BIN=""
+if command -v uv >/dev/null 2>&1; then
+  UV_BIN_DIR="$(uv tool dir --bin 2>/dev/null || true)"
+  if [ -n "$UV_BIN_DIR" ] && [ -x "$UV_BIN_DIR/mcp-feedback-enhanced" ]; then
+    BIN="$UV_BIN_DIR/mcp-feedback-enhanced"
+  fi
+fi
+if [ -z "$BIN" ] && [ -x "$HOME/.local/bin/mcp-feedback-enhanced" ]; then
+  BIN="$HOME/.local/bin/mcp-feedback-enhanced"
+fi
+if [ -z "$BIN" ]; then
+  BIN="$(command -v mcp-feedback-enhanced 2>/dev/null || true)"
+fi
+if [ -z "$BIN" ]; then
+  BIN="$HOME/.local/bin/mcp-feedback-enhanced"  # 默认位置（SKIP_TOOL_INSTALL 场景下可能尚不存在）
+fi
 if [ "${SKIP_TOOL_INSTALL:-}" != "1" ] && [ ! -x "$BIN" ]; then
   die "安装后仍找不到可执行文件：$BIN（请确认 uv tool 的 bin 目录在 PATH 中：uv tool update-shell）"
 fi
