@@ -51,9 +51,13 @@ def desktop_env(monkeypatch, web_ui_manager, test_project_dir):
 
     monkeypatch.setattr(
         WebFeedbackSession,
-        "wait_for_feedback",
+        "wait_slice",
         AsyncMock(
-            return_value={"interactive_feedback": "", "images": [], "settings": {}}
+            return_value={
+                "outcome": "waiting",
+                "interactive_feedback": "",
+                "images": [],
+            }
         ),
     )
 
@@ -81,6 +85,9 @@ class TestDesktopUnavailableFallsBackToWeb:
 
         await web_main.launch_web_feedback_ui(project_dir, "摘要", timeout=60)
 
+        assert WebFeedbackSession.wait_slice.await_count == 1, (
+            "等待必須走已被替身攔下的 wait_slice；否則測試會真的睡一整個時間片"
+        )
         assert opened == [manager.get_server_url()], "必須真的把網址交給瀏覽器"
         assert "MCP_DESKTOP_MODE" not in web_main.os.environ, (
             "本 process 應改走 Web 模式"
