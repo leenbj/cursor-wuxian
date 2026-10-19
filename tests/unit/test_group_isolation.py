@@ -15,12 +15,14 @@ WebUIManager。舊版 create_session 會把前一個對話的會話清掉並頂�
 6. 桌面視窗連的是自己分組的服務
 """
 
+import inspect
 import os
 import socket
 from unittest.mock import AsyncMock
 
 import pytest
 
+from mcp_feedback_enhanced import server
 from mcp_feedback_enhanced.web import main as web_main
 from mcp_feedback_enhanced.web.main import WebUIManager
 from mcp_feedback_enhanced.web.models.feedback_session import WebFeedbackSession
@@ -257,6 +259,22 @@ class TestEndSignalIsNeverLost:
 
         assert again["outcome"] == "waiting"
         assert again["session_id"] != ra["session_id"], "第二次應是全新會話"
+
+
+class TestToolDescriptionKeepsTitleStable:
+    def test_tool_description_and_title_field_require_a_stable_title(self):
+        """分組鍵含 title。工具描述若寫「依當前對話自動生成」，模型每次重新生成就會漂移，
+        收到回饋後開新一輪時被當成新分組、多開一個窗口。工具描述是模型最穩定讀到的位置"""
+        doc = server.interactive_feedback.__doc__ or ""
+        title_field = (
+            inspect.signature(server.interactive_feedback)
+            .parameters["title"]
+            .annotation.__metadata__[0]
+        )
+
+        assert "逐字保持一致" in doc
+        assert "依當前對話自動生成" not in doc, "不能鼓勵模型每次重新生成標題"
+        assert "逐字保持一致" in title_field.description
 
 
 class TestExtraManagerPorts:
