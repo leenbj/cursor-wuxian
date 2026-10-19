@@ -27,11 +27,12 @@ except ImportError as e:
 class DesktopApp:
     """桌面應用程式管理器"""
 
-    def __init__(self):
-        self.web_manager: WebUIManager | None = None
+    def __init__(self, web_manager: WebUIManager | None = None, window_title: str = ""):
+        # 注入管理器：窗口連到該分組自己的服務；不注入則沿用全域預設管理器
+        self.web_manager: WebUIManager | None = web_manager
         self.desktop_mode = False
         self.app_handle = None
-        self.window_title: str = os.environ.get("MCP_WINDOW_TITLE", "")
+        self.window_title: str = window_title or os.environ.get("MCP_WINDOW_TITLE", "")
 
     def set_desktop_mode(self, enabled: bool = True):
         """設置桌面模式"""
@@ -55,8 +56,9 @@ class DesktopApp:
         """啟動 Web 後端服務"""
         debug_log("啟動 Web 後端服務...")
 
-        # 獲取 Web UI 管理器
-        self.web_manager = get_web_ui_manager()
+        # 獲取 Web UI 管理器：注入的優先（多分組各連各的服務），否則取全域預設
+        if self.web_manager is None:
+            self.web_manager = get_web_ui_manager()
 
         # 設置桌面模式，禁止自動開啟瀏覽器
         self.set_desktop_mode(True)
@@ -322,15 +324,21 @@ class DesktopApp:
         debug_log("桌面應用程式已停止")
 
 
-async def launch_desktop_app(test_mode: bool = False) -> DesktopApp:
+async def launch_desktop_app(
+    test_mode: bool = False,
+    web_manager: WebUIManager | None = None,
+    window_title: str = "",
+) -> DesktopApp:
     """啟動桌面應用程式
 
     Args:
         test_mode: 是否為測試模式，測試模式下會創建測試會話
+        web_manager: 視窗要連的管理器（分組隔離）；不傳則用全域預設管理器
+        window_title: 視窗標題（任務名）；不傳則讀 MCP_WINDOW_TITLE 環境變數
     """
     debug_log("正在啟動桌面應用程式...")
 
-    app = DesktopApp()
+    app = DesktopApp(web_manager=web_manager, window_title=window_title)
 
     try:
         # 啟動 Web 後端

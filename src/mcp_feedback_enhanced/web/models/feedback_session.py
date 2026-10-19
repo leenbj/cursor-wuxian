@@ -89,8 +89,13 @@ class WebFeedbackSession:
         self.title = title.strip() or self._derive_title(summary)
         # 用戶點擊「結束對話」按鈕的主動結束標記，與斷線/超時嚴格區分
         self.ended_by_user = False
+        # 結束信號是否已交付給呼叫端。用戶可能在兩次輪詢之間點結束，此時會話已是終態
+        # 但信號還沒送達模型，下一次輪詢必須把它交付，不能當舊會話丟掉
+        self.end_delivered = False
         # 前端斷線且寬限到期時的回呼（由 WebUIManager 注入，負責重新拉起視窗）
         self.on_window_lost: Callable[[], None] | None = None
+        # 提交反饋後關閉桌面視窗的回呼（由所屬 WebUIManager 注入，只關自己分組的視窗）
+        self.on_close_window: Callable[[], None] | None = None
         self.websocket: WebSocket | None = None
         self.feedback_result: str | None = None
         self.images: list[dict] = []
@@ -296,6 +301,10 @@ class WebFeedbackSession:
             SessionStatus.TIMEOUT,
             SessionStatus.EXPIRED,
         ]
+
+    def is_end_pending(self) -> bool:
+        """用戶已點結束對話，但結束信號還沒交付給呼叫端"""
+        return self.ended_by_user and not self.end_delivered
 
     def get_status_info(self) -> dict[str, Any]:
         """獲取會話狀態信息"""
@@ -642,10 +651,13 @@ class WebFeedbackSession:
 
                     # 立即關閉桌面應用程式，無延遲
                     try:
-                        from ..main import get_web_ui_manager
+                        if self.on_close_window is not None:
+                            self.on_close_window()
+                        else:
+                            # 不是由管理器創建的會話：沿用全域預設管理器
+                            from ..main import get_web_ui_manager
 
-                        manager = get_web_ui_manager()
-                        manager.close_desktop_app()
+                            get_web_ui_manager().close_desktop_app()
                         debug_log("桌面應用程式立即關閉成功")
                     except Exception as close_error:
                         debug_log(f"立即關閉桌面應用程式失敗: {close_error}")

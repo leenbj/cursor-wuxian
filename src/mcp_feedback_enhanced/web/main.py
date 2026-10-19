@@ -344,6 +344,8 @@ class WebUIManager:
         session = WebFeedbackSession(session_id, project_directory, summary, title=title)
         # 視窗被誤關時自動重新拉起（單一視窗：拉起端互斥保證不雙開）
         session.on_window_lost = lambda: self._relaunch_desktop_window(session)
+        # 提交反饋後只關自己分組的視窗，不能取全域預設管理器去關別人的
+        session.on_close_window = self.close_desktop_app
 
         # 如果有舊會話，處理狀態轉換和清理
         if old_session:
@@ -725,8 +727,10 @@ class WebUIManager:
 
             launch_desktop_app_func = import_desktop_app()
 
-            # 啟動桌面應用程式
-            desktop_app = await launch_desktop_app_func()
+            # 啟動桌面應用程式：把自己和標題交給工廠，視窗才會連到本分組的服務
+            desktop_app = await launch_desktop_app_func(
+                web_manager=self, window_title=title
+            )
             # 保存桌面應用實例引用，以便後續控制
             self.desktop_app_instance = desktop_app
             debug_log("桌面應用程式啟動成功")
@@ -1138,6 +1142,77 @@ def get_web_ui_manager() -> WebUIManager:
     return _web_ui_manager
 
 
+# 分組隔離。一個 Cursor 窗口只拉起一個 MCP 行程，窗口內並行的多個對話共用它；
+# 單個管理器只有一個「當前會話」，後來的對話會清掉前一個並搶走它視窗的連線。
+# 所以每個分組（目錄 + 標題）認領一個獨立管理器：獨立端口、獨立窗口、獨立會話。
+_group_managers: dict[str, WebUIManager] = {}  # 分組鍵 -> 已認領它的管理器
+# 預設管理器之外額外建立的管理器。對話結束後只是回到空閒、供後續對話復用，
+# 不銷毀（stop() 並不會真正停掉 uvicorn 線程，銷毀只會洩漏端口）
+_extra_managers: list[WebUIManager] = []
+
+
+def _group_key(project_directory: str, title: str) -> str:
+    directory = os.path.realpath(project_directory) if project_directory else ""
+    return f"{directory}\n{(title or '').strip()}"
+
+
+def _new_extra_manager(existing: list[WebUIManager]) -> WebUIManager:
+    """新建額外管理器，端口顯式取「已有端口之上的空閒端口」。
+
+    不走 WebUIManager() 的預設路徑：非測試模式下它 auto_cleanup=True，首選端口被占用
+    且占用者命令行含 mcp-feedback-enhanced 時會去殺占用進程。同一行程裡第二個
+    管理器看到的占用者就是第一個管理器自己，等於自殺（macOS 上 psutil 無權限查連線
+    所以不觸發，Linux 上會）。
+    """
+    host = existing[0].host
+    port = PortManager.find_free_port_enhanced(
+        preferred_port=max(m.port for m in existing) + 1,
+        auto_cleanup=False,
+        host=host,
+    )
+    manager = WebUIManager(host=host, port=port)
+    _extra_managers.append(manager)
+    return manager
+
+
+def get_group_manager(
+    project_directory: str = "", title: str = "", session_id: str = ""
+) -> WebUIManager:
+    """取得（或認領）這個對話所屬的管理器。
+
+    優先級：存活會話所屬的管理器（session_id）> 分組鍵已認領的管理器 >
+    空閒管理器 > 新建。預設管理器排在最前，只有一個對話時仍是它（默認端口，
+    行為與舊版一致）。已結束會話的 session_id 不參與路由：它原來的管理器可能
+    已被別的對話復用，按它路由會把舊對話的請求打進別人的窗口。
+    """
+    managers = [get_web_ui_manager(), *_extra_managers]
+    if session_id:
+        for manager in managers:
+            session = manager.get_session(session_id)
+            if session is not None and (
+                not session.is_terminal() or session.is_end_pending()
+            ):
+                return manager
+
+    key = _group_key(project_directory, title)
+    claimed = _group_managers.get(key)
+    if claimed is not None:
+        return claimed
+
+    in_use = {id(m) for m in _group_managers.values()}
+    manager = next((m for m in managers if id(m) not in in_use), None)
+    if manager is None:
+        manager = _new_extra_manager(managers)
+    _group_managers[key] = manager
+    return manager
+
+
+def release_group_manager(manager: WebUIManager) -> None:
+    """對話正式結束：注銷分組，管理器回到空閒狀態供後續新對話復用。"""
+    for key in [k for k, m in _group_managers.items() if m is manager]:
+        del _group_managers[key]
+
+
 # 單次工具調用的最長等待時間片（秒）。宿主（如 Cursor）對單次 MCP 請求有
 # 硬超時（數十秒至數分鐘不等且不可配），任何「一次調用等到底」的設計都會
 # 被宿主先掐斷。因此改為分片：每次調用最多等一片就返回 waiting，由呼叫端
@@ -1166,7 +1241,7 @@ async def launch_web_feedback_ui(
         dict: 含 session_id 與 outcome（feedback / ended / waiting）；
         feedback 時另含 interactive_feedback 與 images（兼容舊欄位形狀）
     """
-    manager = get_web_ui_manager()
+    manager = get_group_manager(project_directory, title, session_id)
 
     if manager.server_thread is None or not manager.server_thread.is_alive():
         manager.start_server()
@@ -1181,8 +1256,12 @@ async def launch_web_feedback_ui(
     session = None
     if session_id:
         session = manager.get_session(session_id)
-        if session is not None and session.is_terminal():
-            session = None  # 已結束的舊會話不復用，走新建
+        if (
+            session is not None
+            and session.is_terminal()
+            and not session.is_end_pending()
+        ):
+            session = None  # 已結束的舊會話不復用，走新建；但還沒交付的結束信號要先交付
 
     if session is None:
         # 創建新會話（首次調用，或續調的會話已不存在）
@@ -1220,6 +1299,9 @@ async def launch_web_feedback_ui(
     result = await session.wait_slice(slice_seconds)
     result["session_id"] = session.session_id
     result["title"] = session.title
+    if result["outcome"] == "ended":
+        session.end_delivered = True  # 信號已交付，之後同 id 的調用才算新的一輪
+        release_group_manager(manager)  # 對話正式結束，管理器可被後續新對話復用
     debug_log(
         f"會話 {session.session_id} 本片等待結果: {result['outcome']}（保持活躍，等待續調）"
     )
@@ -1227,11 +1309,15 @@ async def launch_web_feedback_ui(
 
 
 def stop_web_ui():
-    """停止 Web UI 服務"""
+    """停止 Web UI 服務（含分組隔離額外建立的所有管理器）"""
     global _web_ui_manager
-    if _web_ui_manager:
-        _web_ui_manager.stop()
-        _web_ui_manager = None
+    managers = [m for m in [_web_ui_manager, *_extra_managers] if m]
+    for manager in managers:
+        manager.stop()
+    _web_ui_manager = None
+    _extra_managers.clear()
+    _group_managers.clear()
+    if managers:
         debug_log("Web UI 服務已停止")
 
 
